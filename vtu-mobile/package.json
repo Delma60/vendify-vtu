@@ -1,0 +1,25 @@
+{
+  "name": "vtu-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "eas:build": "eas build"
+  },
+  "dependencies": {
+    "expo": "^56.0.11",
+    "expo-router": "^56.2.10",
+    "expo-status-bar": "^56.0.4",
+    "react": "19.2.7",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-native": "^0.73.0"
+  }
+}

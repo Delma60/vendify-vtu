@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Expo
+.expo/
+.expo-shared/
+web-build/
+
+# Log files
+logs/
+*.log
+
+# Env files
+.env*
+
+# Mac
+.DS_Store
+
+# VSCode
+.vscode/
