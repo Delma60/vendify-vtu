@@ -206,6 +206,7 @@ export async function debitWallet(
     import('@/lib/commissions/engine').then(m => m.triggerCommissions?.(userId, txnId)),
     import('@/lib/cashback/engine').then(m => m.triggerCashback?.(userId, txnId)),
     sendTxnNotification(userId, txnId, 'debit'),
+    import('@/lib/notifications/low-balance').then(m => m.checkAndNotifyLowBalance(userId)),
   ]).catch(console.error);
 
   return txnId;

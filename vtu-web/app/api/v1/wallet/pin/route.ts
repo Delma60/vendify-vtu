@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const parsed = SetPinSchema.safeParse(body);
-  if (!parsed.success) return err(parsed.error.errors[0].message, 422);
+  if (!parsed.success) return err((parsed.error as any).errors[0].message, 422);
 
   const { pin, confirmPin } = parsed.data;
   if (pin !== confirmPin) return err('PINs do not match.', 400);
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const parsed = ChangePinSchema.safeParse(body);
-  if (!parsed.success) return err(parsed.error.errors[0].message, 422);
+  if (!parsed.success) return err((parsed.error as any).errors[0].message, 422);
 
   const { currentPin, newPin, confirmNewPin } = parsed.data;
 
