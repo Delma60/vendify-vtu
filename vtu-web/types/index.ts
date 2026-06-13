@@ -106,3 +106,32 @@ export interface Role {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// Flutterwave
+
+export interface FlutterwaveResponse<T = unknown> {
+    status: string;
+    message: string;
+    data: T;
+}
+
+export interface FlutterwaveWebhookEvent {
+    eventType: string;
+    eventData: any;
+    eventStatus: string;
+    eventTime: string;
+    eventReference: string;
+}
+
+export interface PayoutRequest {
+    amount:number;
+    currency:string;
+    recipientId:string;
+    metadata?:Record<string, any>;
+}
+
+export interface PayoutResponse {
+    status: 'success' | 'error';
+    data: any;
+    message: string;
+}

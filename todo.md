@@ -49,34 +49,36 @@
 ## PHASE 1 — Authentication & User Management
 
 ### Auth
-- [ ] Firebase Auth integration (email/password, Google OAuth)
+- [x] Firebase Auth registration and login via email/password
+- [ ] Google OAuth integration
 - [ ] Phone number OTP verification (Firebase Phone Auth)
-- [ ] JWT session management (Firebase custom tokens + `next-auth` or iron-session)
-- [ ] Middleware for protected routes (web + API)
-- [ ] 2FA (Two-Factor Authentication) via email OTP or TOTP (Google Authenticator)
-- [ ] Login attempt throttling & account lockout (5 attempts / 15 min)
-- [ ] Device/session tracking (store device fingerprint on login)
-- [ ] Security alert email on new device login
+- [x] JWT session management with signed session cookie
+- [x] Middleware for protected routes (web + API)
+- [x] 2FA via email OTP or TOTP (Google Authenticator)
+- [x] Login attempt throttling & account lockout (5 attempts / 15 min)
+- [x] Device/session tracking (store device fingerprint on login)
+- [x] Security alert email on new device login
 
 ### Custom Role & Permission System
-- [ ] Design permission schema: flat list of permission strings (e.g. `users:read`, `transactions:refund`, `loans:approve`, `admin:impersonate`)
-- [ ] Create `roles` collection in Firestore: each role document holds a name, description, and `permissions[]` array
-- [ ] Seed default roles: `super_admin` (all permissions), `admin`, `support_agent`, `finance_officer`, `reseller`, `api_user`, `customer`
-- [ ] Admin UI: Create Role page (name, description, pick permissions from checklist)
+- [x] Design permission schema: flat list of permission strings (e.g. `users:read`, `transactions:refund`, `loans:approve`, `admin:impersonate`)
+- [x] Create `roles` collection in Firestore to store dynamic role documents
+- [ ] Seed default roles: `super_admin`, `admin`, `support_agent`, `finance_officer`, `reseller`, `api_user`, `customer`
+- [ ] Admin UI: Create Role page (name, description, pick permissions)
 - [ ] Admin UI: Edit Role page (add/remove permissions from existing role)
-- [ ] Admin UI: Delete Role (with guard — cannot delete if users are assigned to it)
-- [ ] Admin UI: Assign Role to User (dropdown of existing roles)
-- [ ] Permission middleware: server-side check on every admin/internal API route
-- [ ] Permission hook on client: `useHasPermission('transactions:refund')` → show/hide UI elements
-- [ ] Roles are fully dynamic — new roles created in admin panel take effect immediately, no code deploy needed
-- [ ] Audit log entry on every role creation, edit, assignment
+- [ ] Admin UI: Delete Role (guard against deleting assigned roles)
+- [ ] Admin UI: Assign Role to User
+- [x] Permission middleware: server-side check on admin/internal API routes
+- [ ] Permission hook on client: `useHasPermission(...)`
+- [ ] Audit log entry on every role creation/edit/assignment
+- [ ] Roles UI and assignment flow fully dynamic without code deploy
 
 ### User Profiles
-- [ ] Registration flow (email verify → phone verify → KYC optional)
+- [x] Registration flow with email verification
+- [ ] Phone verification on registration
 - [ ] Profile page (avatar, name, phone, address, NIN optional)
-- [ ] KYC verification tier system (Tier 1: email+phone, Tier 2: NIN/BVN, Tier 3: business docs)
+- [ ] KYC verification tier system
 - [ ] BVN/NIN verification via Flutterwave Identity API
-- [ ] Referral code generation per user
+- [x] Referral code generation per user
 - [ ] Referral tracking and reward system
 - [ ] Transaction PIN setup (separate from login password)
 - [ ] PIN reset via OTP
