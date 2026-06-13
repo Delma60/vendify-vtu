@@ -926,6 +926,7 @@ dead_letter_queue: admin read/write only
 
 ## Agent Implementation Rules
 
+0. **Path Inclusion** - Always add a commented out file path on the script to show where to put it in project.
 1. **All money is in kobo** — multiply NGN by 100. Never use `parseFloat` on money.
 2. **All wallet writes go through `lib/wallet/operations.ts`** — no exceptions.
 3. **All VTU purchases go through `lib/providers/router.ts`** — never call a provider directly from a route handler.
