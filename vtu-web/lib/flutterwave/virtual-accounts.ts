@@ -1,43 +1,153 @@
 // vtu-web/lib/flutterwave/virtual-accounts.ts
 // AGENTS.md RULES: #3 (payments), #9 (log every external call), #14 (runtime config)
 
-// IMPORTS NEEDED:
-// - FlutterwaveClient from @/lib/flutterwave/client
-// - env from @/lib/utils/env
-// - logExternalCall from @/lib/utils/logger
-// - VirtualAccount types from @/types
+import * as FlutterwaveClient from './client';
+import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { logExternalCall } from '@/lib/utils/logger';
 
-// ─── VIRTUAL ACCOUNT CLIENT ────────────────────────────────────────────────────
+export interface VirtualAccount {
+  accountNumber: string;
+  bankName: string;
+  accountReference: string;
+  accountName: string;
+  createdAt: string;
+}
 
-// FUNCTION: createVirtualAccount(userId, customerDetails)
-// PURPOSE : Create a Flutterwave virtual account for a wallet top-up.
-// PARAMS  :
-//   - userId: string
-//   - customerDetails: { email, phone, name }
-// RETURNS : Promise<VirtualAccount>
-// THROWS  : Error if Flutterwave request fails.
-//
-// STEPS:
-//   1. Build payload with customer's email, phone, and metadata.
-//   2. Call FlutterwaveClient.post('/v3/virtual-account-numbers', payload).
-//   3. Map response to internal VirtualAccount shape.
-//   4. Persist virtual account details in Firestore/storage if needed.
-//   5. Return the virtual account record.
+export interface VirtualAccountPaymentVerification {
+  verified: boolean;
+  amount: number;           // in kobo
+  reference: string;
+  narration: string;
+  paidAt: string | null;
+}
 
-// FUNCTION: getVirtualAccountDetails(accountId)
-// PURPOSE : Retrieve the latest Flutterwave virtual account details.
-// PARAMS  : accountId: string
-// RETURNS : Promise<VirtualAccount>
-//
-// STEPS:
-//   1. Call FlutterwaveClient.get(`/v3/virtual-account-numbers/${accountId}`).
-//   2. Map and return sanitized account details.
+// ─── CREATE VIRTUAL ACCOUNT ────────────────────────────────────────────────────
 
-// FUNCTION: verifyVirtualAccountPayment(reference)
-// PURPOSE : Verify a virtual account payment by reference.
-// PARAMS  : reference: string
-// RETURNS : Promise<PaymentVerificationResult>
-//
-// STEPS:
-//   1. Call FlutterwaveClient.get(`/v3/virtual-account-transfers?reference=${reference}`).
-//   2. Parse provider response and return normalized verification.
+/**
+ * Create a Flutterwave dedicated virtual account (NUBAN) for a user.
+ * Called once on user registration.
+ */
+export async function createVirtualAccount(
+  userId: string,
+  customerDetails: { email: string; phone: string; name: string }
+): Promise<VirtualAccount> {
+  const payload = {
+    email: customerDetails.email,
+    is_permanent: true,
+    bvn: '',               // optional: populate if user has completed KYC
+    tx_ref: `VA-${userId}-${Date.now()}`,
+    phonenumber: customerDetails.phone.startsWith('+')
+      ? customerDetails.phone
+      : `+234${customerDetails.phone.replace(/^0/, '')}`,
+    firstname: customerDetails.name.split(' ')[0] ?? customerDetails.name,
+    lastname: customerDetails.name.split(' ').slice(1).join(' ') || customerDetails.name,
+    narration: `${customerDetails.name} | VendPro Wallet`,
+  };
+
+  const response = await FlutterwaveClient.post(
+    '/v3/virtual-account-numbers',
+    JSON.stringify(payload)
+  );
+
+  if (response.status !== 'success' || !response.data) {
+    logExternalCall('Flutterwave', 'createVirtualAccount', payload, response, false);
+    throw new Error(`Failed to create virtual account: ${response.message}`);
+  }
+
+  const data = response.data as {
+    account_number: string;
+    bank_name: string;
+    ref: string;
+    account_name: string;
+    created_at: string;
+  };
+
+  const virtualAccount: VirtualAccount = {
+    accountNumber: data.account_number,
+    bankName: data.bank_name,
+    accountReference: data.ref,
+    accountName: data.account_name,
+    createdAt: data.created_at,
+  };
+
+  // Persist to wallet document
+  await adminDb.collection('wallets').doc(userId).update({
+    virtualAccountNumber: virtualAccount.accountNumber,
+    virtualAccountBank: virtualAccount.bankName,
+    virtualAccountRef: virtualAccount.accountReference,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  logExternalCall('Flutterwave', 'createVirtualAccount', payload, data, true);
+
+  return virtualAccount;
+}
+
+// ─── GET VIRTUAL ACCOUNT DETAILS ──────────────────────────────────────────────
+
+export async function getVirtualAccountDetails(
+  orderRef: string
+): Promise<VirtualAccount | null> {
+  const response = await FlutterwaveClient.get(
+    `/v3/virtual-account-numbers/${orderRef}`
+  );
+
+  if (response.status !== 'success' || !response.data) {
+    return null;
+  }
+
+  const data = response.data as {
+    account_number: string;
+    bank_name: string;
+    ref: string;
+    account_name: string;
+    created_at: string;
+  };
+
+  return {
+    accountNumber: data.account_number,
+    bankName: data.bank_name,
+    accountReference: data.ref,
+    accountName: data.account_name,
+    createdAt: data.created_at,
+  };
+}
+
+// ─── VERIFY VIRTUAL ACCOUNT PAYMENT ───────────────────────────────────────────
+
+export async function verifyVirtualAccountPayment(
+  reference: string
+): Promise<VirtualAccountPaymentVerification> {
+  const response = await FlutterwaveClient.get(
+    `/v3/transactions?tx_ref=${encodeURIComponent(reference)}`
+  );
+
+  if (response.status !== 'success') {
+    return { verified: false, amount: 0, reference, narration: '', paidAt: null };
+  }
+
+  const txns = (response.data as { data: unknown[] })?.data ?? [];
+  const txn = txns[0] as {
+    status: string;
+    amount: number;
+    currency: string;
+    narration: string;
+    created_at: string;
+  } | undefined;
+
+  if (!txn || txn.status !== 'successful') {
+    return { verified: false, amount: 0, reference, narration: '', paidAt: null };
+  }
+
+  // Flutterwave returns amounts in Naira — convert to kobo
+  const amountKobo = Math.round(txn.amount * 100);
+
+  return {
+    verified: true,
+    amount: amountKobo,
+    reference,
+    narration: txn.narration,
+    paidAt: txn.created_at,
+  };
+}

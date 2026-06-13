@@ -1,3 +1,4 @@
+// vtu-web/types/index.ts
 import { Timestamp } from 'firebase-admin/firestore';
 
 // ─── User ────────────────────────────────────────────────────────────────────
@@ -14,7 +15,7 @@ export interface User {
   referredBy: string | null;
   isActive: boolean;
   isFrozen: boolean;
-  transactionPin: string | null; // bcrypt hashed
+  transactionPin: string | null;   // bcrypt hashed
   subscriptionPlanId: string;
   subscriptionExpiresAt: Timestamp | null;
   parentResellerId: string | null;
@@ -22,11 +23,11 @@ export interface User {
   hasBucket: boolean;
   riskLevel: 'low' | 'medium' | 'high';
   spendingLimits: {
-    dailyLimit: number | null;
-    weeklyLimit: number | null;
+    dailyLimit: number | null;     // in kobo
+    weeklyLimit: number | null;    // in kobo
     dailySpent: number;
     weeklySpent: number;
-    lastResetDate: string; // YYYY-MM-DD
+    lastResetDate: string;         // YYYY-MM-DD
   };
   notifications: {
     email: boolean;
@@ -36,6 +37,76 @@ export interface User {
   };
   fcmTokens: string[];
   whatsappNumber: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export interface Wallet {
+  userId: string;
+  balance: number;                 // ALWAYS in kobo (integer)
+  currency: 'NGN';
+  virtualAccountNumber: string;
+  virtualAccountBank: string;
+  virtualAccountRef: string;
+  totalFunded: number;             // kobo
+  totalSpent: number;              // kobo
+  totalWithdrawn: number;          // kobo
+  lockedBalance: number;           // kobo — funds held for pending disputes
+  updatedAt: Timestamp;
+}
+
+// ─── Transaction ──────────────────────────────────────────────────────────────
+
+export type TransactionCategory =
+  | 'airtime'
+  | 'data'
+  | 'electricity'
+  | 'cable'
+  | 'exam_pin'
+  | 'sms'
+  | 'wallet_fund'
+  | 'withdrawal'
+  | 'transfer'
+  | 'bucket_purchase'
+  | 'loan_disbursement'
+  | 'loan_repayment'
+  | 'event_ticket'
+  | 'refund'
+  | 'commission'
+  | 'cashback'
+  | 'fee'
+  | 'airtime_to_cash';
+
+export type TransactionStatus =
+  | 'pending'
+  | 'success'
+  | 'failed'
+  | 'reversed'
+  | 'disputed';
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'credit' | 'debit';
+  category: TransactionCategory | string;
+  amount: number;                  // in kobo
+  fee: number;                     // platform fee in kobo
+  balanceBefore: number;
+  balanceAfter: number;
+  status: TransactionStatus;
+  reference: string;               // VTX-AIR-1718271234567-A7F3K2
+  providerReference: string | null;
+  provider: string | null;
+  metadata: Record<string, unknown>;
+  failureReason: string | null;
+  retryCount: number;
+  fraudScore: number;              // 0-100
+  isApiTransaction: boolean;
+  apiKeyId: string | null;
+  idempotencyKey: string | null;
+  receiptUrl: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -53,7 +124,7 @@ export interface SessionPayload {
 }
 
 export interface DeviceInfo {
-  id: string; // fingerprint
+  id: string;
   userAgent: string;
   ip: string;
   lastSeenAt: Timestamp;
@@ -69,10 +140,10 @@ export interface LoginAttempt {
 
 export interface TwoFactorSetup {
   userId: string;
-  secret: string; // TOTP secret (encrypted at rest)
+  secret: string;                  // TOTP secret (encrypted at rest)
   method: 'email_otp' | 'totp';
   isVerified: boolean;
-  backupCodes: string[]; // hashed
+  backupCodes: string[];           // hashed
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -107,31 +178,105 @@ export interface Role {
   updatedAt: Timestamp;
 }
 
-// Flutterwave
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export interface DataPlan {
+  id: string;
+  network: string;
+  name: string;
+  size: string;
+  validity: string;
+  price: number;                   // in kobo
+  providerPlanId: string;
+}
+
+export interface MeterInfo {
+  customerName: string;
+  meterNumber: string;
+  address: string;
+  disco: string;
+  type: 'prepaid' | 'postpaid';
+}
+
+export interface SmartCardInfo {
+  customerName: string;
+  cardNumber: string;
+  provider: string;
+  currentPlan: string;
+  dueDate: string | null;
+}
+
+export interface VTUProviderResponse {
+  success: boolean;
+  reference: string;
+  providerReference: string;
+  data?: unknown;
+  error?: string;
+  shouldRefund?: boolean;
+}
+
+// ─── Flutterwave ──────────────────────────────────────────────────────────────
 
 export interface FlutterwaveResponse<T = unknown> {
-    status: string;
-    message: string;
-    data: T;
+  status: string;
+  message: string;
+  data: T;
 }
 
 export interface FlutterwaveWebhookEvent {
-    eventType: string;
-    eventData: any;
-    eventStatus: string;
-    eventTime: string;
-    eventReference: string;
+  eventType: string;
+  eventData: unknown;
+  eventStatus: string;
+  eventTime: string;
+  eventReference: string;
 }
 
 export interface PayoutRequest {
-    amount:number;
-    currency:string;
-    recipientId:string;
-    metadata?:Record<string, any>;
+  amount: number;
+  currency: string;
+  recipientId: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PayoutResponse {
-    status: 'success' | 'error';
-    data: any;
-    message: string;
+  status: 'success' | 'error';
+  data: unknown;
+  message: string;
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;            // in kobo
+  annualPrice: number;             // in kobo
+  features: {
+    apiAccess: boolean;
+    bucketAccess: boolean;
+    loanAccess: boolean;
+    whitelabelAccess: boolean;
+    maxDailyTransactions: number | null;
+    rateDiscount: number;
+    prioritySupport: boolean;
+    maxApiKeys: number;
+  };
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: Timestamp;
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export interface SmsProviderResponse {
+  success: boolean;
+  messageId: string | null;
+  error?: string;
+}
+
+export interface WhatsappMessageResponse {
+  success: boolean;
+  messageId: string | null;
+  error?: string;
 }

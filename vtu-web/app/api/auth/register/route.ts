@@ -1,14 +1,12 @@
+// vtu-web/app/api/auth/register/route.ts
 import { NextRequest } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { RegisterSchema } from '@/lib/utils/validators';
 import { ok, err, parseIp } from '@/lib/utils/response';
-import {
-  generateEmailOtp,
-  storeEmailOtp,
-} from '@/lib/auth/twoFactor';
-import { sendEmailVerification, sendWelcomeEmail } from '@/lib/mail/client';
+import { generateEmailOtp, storeEmailOtp } from '@/lib/auth/twoFactor';
+import { sendEmailVerification } from '@/lib/mail/client';
 import { randomBytes } from 'crypto';
 
 function generateReferralCode(): string {
@@ -34,20 +32,20 @@ export async function POST(request: NextRequest) {
 
   const { email, password, displayName, phone, referralCode } = parsed.data;
 
-  // Check for duplicate email
+  // Check duplicate email
   try {
     await getAuth().getUserByEmail(email);
     return err('An account with this email already exists', 409);
   } catch {
-    // getUserByEmail throws when not found — that's what we want
+    // Not found — expected
   }
 
-  // Check for duplicate phone
+  // Check duplicate phone
   try {
     await getAuth().getUserByPhoneNumber(phone.startsWith('+') ? phone : `+234${phone.slice(1)}`);
     return err('An account with this phone number already exists', 409);
   } catch {
-    // not found is fine
+    // Not found — expected
   }
 
   // Create Firebase Auth user
@@ -69,7 +67,6 @@ export async function POST(request: NextRequest) {
   const uid = firebaseUser.uid;
   const referredBy = await resolveReferredBy(referralCode);
   const userReferralCode = generateReferralCode();
-  const ip = parseIp(request);
 
   // Create Firestore user doc + wallet doc atomically
   const batch = adminDb.batch();
@@ -130,7 +127,28 @@ export async function POST(request: NextRequest) {
     console.error('[register] Failed to send verification email', e)
   );
 
-  // Non-blocking: send welcome after verify (handled on verify success)
+  // Async: create Flutterwave virtual account (non-blocking, retried if it fails)
+  createVirtualAccountAsync(uid, { email, phone, name: displayName }).catch((e) =>
+    console.error('[register] Virtual account creation failed — will retry on next login', e)
+  );
 
   return ok({ uid, email }, 'Account created. Check your email for a verification code.', 201);
+}
+
+async function createVirtualAccountAsync(
+  uid: string,
+  customerDetails: { email: string; phone: string; name: string }
+): Promise<void> {
+  try {
+    const { createVirtualAccount } = await import('@/lib/flutterwave/virtual-accounts');
+    await createVirtualAccount(uid, customerDetails);
+  } catch (error) {
+    // Store a flag to retry on next user session
+    await adminDb.collection('pending_virtual_accounts').doc(uid).set({
+      uid,
+      customerDetails,
+      failedAt: FieldValue.serverTimestamp(),
+      retryCount: 0,
+    });
+  }
 }

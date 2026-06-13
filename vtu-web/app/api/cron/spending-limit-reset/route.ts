@@ -1,23 +1,30 @@
 // vtu-web/app/api/cron/spending-limit-reset/route.ts
 // AGENTS.md RULES: #2 (wallet ops), #9 (log every external call), #11 (test with emulator)
 
-// IMPORTS NEEDED:
-// - NextResponse from next/server
-// - resetSpendingLimits from @/lib/wallet/operations
-// - logExternalCall from @/lib/utils/logger
+import { NextRequest, NextResponse } from 'next/server';
+import { resetSpendingLimits } from '@/lib/wallet/operations';
 
-// ─── ROUTE HANDLER ─────────────────────────────────────────────────────────────
+export async function GET(request: NextRequest) {
+  // Guard: only allow Vercel Cron or internal calls
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
 
-// HANDLER: GET
-// PURPOSE : Cron endpoint to reset daily/weekly spending counters.
-// RETURNS : JSON with reset summary.
-//
-// STEPS:
-//   1. Query users with stale spending limit counters.
-//   2. Reset dailySpent, weeklySpent, and lastResetDate.
-//   3. Persist updated user documents.
-//   4. Return summary of reset users.
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
 
-export async function GET(request: Request) {
-  // route implementation placeholder
+  try {
+    const result = await resetSpendingLimits();
+
+    return NextResponse.json({
+      success: true,
+      data: { ...result, runAt: new Date().toISOString() },
+    });
+  } catch (error) {
+    console.error('[cron:spending-limit-reset]', error);
+    return NextResponse.json(
+      { success: false, error: 'Reset failed' },
+      { status: 500 }
+    );
+  }
 }

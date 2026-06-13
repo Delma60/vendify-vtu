@@ -1,26 +1,29 @@
 // vtu-web/app/api/webhooks/flutterwave/route.ts
 // AGENTS.md RULES: #3 (payments), #9 (log every external call), #5 (idempotency)
 
-// IMPORTS NEEDED:
-// - NextResponse from next/server
-// - parseRawBody from @/lib/utils/body
-// - handleFlutterwaveWebhook from @/lib/flutterwave/webhooks
-// - adminDb from @/lib/firebase/admin
-// - logExternalCall from @/lib/utils/logger
+import { NextRequest, NextResponse } from 'next/server';
+import { handleFlutterwaveWebhook } from '@/lib/flutterwave/webhooks';
 
-// ─── ROUTE HANDLER ─────────────────────────────────────────────────────────────
+export async function POST(request: NextRequest) {
+  // Read raw body as text — required for HMAC signature verification
+  const rawBody = await request.text();
+  const signature = request.headers.get('verif-hash') ?? '';
 
-// HANDLER: POST
-// PURPOSE : Receive and process Flutterwave webhook events.
-// REQUEST : raw HTTP body and headers from Flutterwave.
-// RETURNS : JSON response with status success or error.
-//
-// STEPS:
-//   1. Read raw request body and 'verif-hash' header.
-//   2. Call handleFlutterwaveWebhook(rawBody, signature).
-//   3. On success → return NextResponse.json({ success: true }).
-//   4. On failure → log the error and return NextResponse.json({ success: false, error }).
+  if (!signature) {
+    return NextResponse.json({ success: false, error: 'Missing signature' }, { status: 401 });
+  }
 
-export async function POST(request: Request) {
-  // route implementation placeholder
+  try {
+    await handleFlutterwaveWebhook(rawBody, signature);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = (error as Error).message;
+
+    if (message === 'Invalid webhook signature') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.error('[webhook:flutterwave]', error);
+    return NextResponse.json({ success: false, error: 'Processing error' }, { status: 500 });
+  }
 }
