@@ -209,9 +209,12 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+
+      const { data } = await res.json();
+      console.log(data);
       if (!res.ok) throw new Error(data.error ?? "Registration failed");
       setSuccess(true);
+      sessionStorage.setItem("pending_uid", data.uid);
     } catch (e: any) {
       setError(e.message);
     } finally {
