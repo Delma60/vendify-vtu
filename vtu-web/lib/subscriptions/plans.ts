@@ -189,24 +189,22 @@ export async function enforceTransactionLimit(userId: string, dailyCount: number
  * Returns a ProrateResult that the purchase flow uses to reduce the charge.
  */
 export function calculateProrate(
-  currentMonthlyPriceKobo: number,
-  expiresAt: Date
+  currentPlanPriceKobo: number,
+  newPlanPriceKobo: number,
+  billingCycleDays: number,
+  daysUsed: number
 ): ProrateResult {
-  const now = new Date();
-  const totalMs = 30 * 24 * 60 * 60 * 1000; // 30-day billing cycle
-  const remainingMs = Math.max(0, expiresAt.getTime() - now.getTime());
-  const usedMs = totalMs - remainingMs;
+  const daysRemaining = Math.max(0, billingCycleDays - daysUsed);
 
-  const daysUsed = Math.floor(usedMs / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+  const currentDailyRateKobo = currentPlanPriceKobo / billingCycleDays;
+  const creditKobo = Math.floor(currentDailyRateKobo * daysRemaining);
 
-  const dailyRateKobo = currentMonthlyPriceKobo / 30;
-  const creditKobo = Math.floor(dailyRateKobo * daysRemaining);
+  const netChargeKobo = Math.max(0, newPlanPriceKobo - creditKobo);
 
   return {
     creditKobo,
-    chargeKobo: 0, // populated by the purchase flow
-    netChargeKobo: 0,
+    chargeKobo: newPlanPriceKobo,
+    netChargeKobo,
     daysUsed,
     daysRemaining,
   };

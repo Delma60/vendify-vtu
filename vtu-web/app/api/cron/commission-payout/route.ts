@@ -1,23 +1,42 @@
 // vtu-web/app/api/cron/commission-payout/route.ts
-// AGENTS.md RULES: #2 (wallet ops), #9 (log every external call), #11 (test with emulator)
+// AGENTS.md RULES: #2 (wallet ops), #9 (log every external call)
 
-// IMPORTS NEEDED:
-// - NextResponse from next/server
-// - settlePendingCommissions from @/lib/commissions/engine
-// - logExternalCall from @/lib/utils/logger
+import { NextRequest, NextResponse } from 'next/server';
+import { settlePendingCommissions } from '@/lib/commissions/engine';
 
-// ─── ROUTE HANDLER ─────────────────────────────────────────────────────────────
+/**
+ * GET /api/cron/commission-payout
+ * Settle all pending commission records into earner wallets.
+ * Schedule: Daily at 06:00 WAT (Vercel Cron: "0 5 * * *")
+ *
+ * Vercel cron.json:
+ *   { "path": "/api/cron/commission-payout", "schedule": "0 5 * * *" }
+ */
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
 
-// HANDLER: GET
-// PURPOSE : Cron endpoint to pay out pending commissions to wallets.
-// RETURNS : JSON with payout summary.
-//
-// STEPS:
-//   1. Query pending commission documents.
-//   2. For each commission, credit wallet and update status.
-//   3. Send notifications for credited commissions.
-//   4. Return summary of processed payouts.
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
 
-export async function GET(request: Request) {
-  // route implementation placeholder
+  try {
+    const summary = await settlePendingCommissions();
+
+    console.log('[cron:commission-payout]', summary);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...summary,
+        runAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('[cron:commission-payout]', error);
+    return NextResponse.json(
+      { success: false, error: 'Commission payout failed' },
+      { status: 500 }
+    );
+  }
 }
