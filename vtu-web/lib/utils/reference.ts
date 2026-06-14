@@ -17,6 +17,7 @@ const SERVICE_CODES: Record<string, string> = {
   refund: 'RFD',
   commission: 'COM',
   cashback: 'CBK',
+  internet: 'INT',  
 };
 
 /**

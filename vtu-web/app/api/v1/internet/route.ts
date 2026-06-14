@@ -1,4 +1,4 @@
-// vtu-web/app/api/v1/cable/route.ts
+// vtu-web/app/api/v1/internet/route.ts
 // AGENTS.md RULES: #1 (kobo), #2 (wallet ops), #4 (zod), #5 (idempotency), #7 (fraud score), #9 (log)
 
 import { NextRequest } from 'next/server';
@@ -13,32 +13,29 @@ import { Timestamp } from 'firebase-admin/firestore';
 import type { User } from '@/types';
 import bcrypt from 'bcryptjs';
 import {
-  CABLE_PROVIDERS,
-  verifySmartCard,
-  listBouquets,
-  getBouquetById,
-  purchaseCable,
-  deliverCableConfirmation,
-  normaliseSmartCardNumber,
-} from '@/lib/cable/engine';
+  INTERNET_PROVIDERS,
+  verifyInternetAccount,
+  listInternetPlans,
+  getInternetPlanById,
+  purchaseInternet,
+  deliverInternetConfirmation,
+  normaliseAccountNumber,
+} from '@/lib/internet/engine';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const PurchaseSchema = z.object({
-  smartCardNumber: z.string().min(5).max(20),
-  provider: z.enum(CABLE_PROVIDERS, {
-    errorMap: () => ({ message: `provider must be one of: ${CABLE_PROVIDERS.join(', ')}` }),
+  accountNumber: z.string().min(5).max(20),
+  provider: z.enum(INTERNET_PROVIDERS, {
+    errorMap: () => ({ message: `provider must be one of: ${INTERNET_PROVIDERS.join(', ')}` }),
   }),
-  bouquetId: z.string().min(1, 'Bouquet is required'),
-  addonIds: z.array(z.string().min(1)).max(5).optional().default([]),
+  planId: z.string().min(1, 'Plan is required'),
   transactionPin: z.string().length(4, 'Transaction PIN must be 4 digits'),
   idempotencyKey: z.string().min(1, 'Idempotency key is required'),
-  // Optional — frontend should call /api/v1/verify/smartcard first, but we
-  // always re-verify server-side regardless to prevent stale/forged names.
   skipVerification: z.boolean().optional().default(false),
 });
 
-// ─── POST /api/v1/cable — purchase or renew a subscription ───────────────────
+// ─── POST /api/v1/internet — purchase / renew subscription ───────────────────
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -48,11 +45,11 @@ export async function POST(request: NextRequest) {
   const parsed = PurchaseSchema.safeParse(body);
   if (!parsed.success) return err((parsed.error as any).errors[0].message, 422);
 
-  const { smartCardNumber, provider, bouquetId, addonIds, transactionPin, idempotencyKey } = parsed.data;
-  const normalisedCard = normaliseSmartCardNumber(smartCardNumber);
+  const { accountNumber, provider, planId, transactionPin, idempotencyKey } = parsed.data;
+  const normalisedAccount = normaliseAccountNumber(accountNumber);
 
-  if (!/^\d{5,20}$/.test(normalisedCard)) {
-    return err('Smart card / IUC number must contain only digits.', 422);
+  if (!/^[A-Za-z0-9]{5,20}$/.test(normalisedAccount)) {
+    return err('Account number must be alphanumeric.', 422);
   }
 
   // 1. Load user + verify PIN + account status
@@ -66,67 +63,52 @@ export async function POST(request: NextRequest) {
   const pinValid = await bcrypt.compare(transactionPin, user.transactionPin);
   if (!pinValid) return err('Incorrect transaction PIN.', 401, 'INVALID_PIN');
 
-  // 2. Resolve bouquet + add-ons
-  const bouquet = await getBouquetById(bouquetId);
-  if (!bouquet) return err('Bouquet not found.', 404);
-  if (!bouquet.isActive) return err('This bouquet is no longer available.', 400);
-  if (bouquet.provider !== provider) return err('Bouquet provider does not match selected provider.', 400);
-  if (bouquet.type !== 'bouquet') return err('Selected item is not a bouquet.', 400);
+  // 2. Resolve plan
+  const plan = await getInternetPlanById(planId);
+  if (!plan) return err('Plan not found.', 404);
+  if (!plan.isActive) return err('This plan is no longer available.', 400);
+  if (plan.provider !== provider) return err('Plan provider does not match selected provider.', 400);
 
-  const addons = [];
-  for (const addonId of addonIds) {
-    const addon = await getBouquetById(addonId);
-    if (!addon) return err(`Add-on ${addonId} not found.`, 404);
-    if (!addon.isActive) return err(`Add-on "${addon.name}" is no longer available.`, 400);
-    if (addon.provider !== provider) return err('Add-on provider does not match selected provider.', 400);
-    if (addon.type !== 'addon') return err(`"${addon.name}" is not a valid add-on.`, 400);
-    addons.push(addon);
-  }
-
-  // 3. Verify smart card — prevents paying onto an invalid card
+  // 3. Verify account — prevents paying onto an invalid account
   let customerName: string;
   try {
-    const cardInfo = await verifySmartCard(normalisedCard, provider);
-    customerName = cardInfo.customerName;
+    const accountInfo = await verifyInternetAccount(normalisedAccount, provider);
+    customerName = accountInfo.customerName;
   } catch (error: any) {
     return err(
-      error?.message ?? 'Could not verify this smart card. Please check the number and try again.',
+      error?.message ?? 'Could not verify this account number. Please check it and try again.',
       400,
-      'SMARTCARD_VERIFICATION_FAILED'
+      'ACCOUNT_VERIFICATION_FAILED'
     );
   }
 
-  // 4. Calculate amount + fee
-  const baseAmountKobo = bouquet.priceKobo + addons.reduce((sum, a) => sum + a.priceKobo, 0);
-  const feeCalc = await calculateFee('cable', baseAmountKobo);
+  // 4. Calculate fee
+  const feeCalc = await calculateFee('internet', plan.priceKobo);
   const totalDebit = feeCalc.totalChargeKobo;
 
-  const reference = generateReference('cable');
+  const reference = generateReference('internet');
   const ip = parseIp(request);
 
-  // 5. Debit wallet atomically (idempotency + fraud + spending limit checks)
+  // 5. Debit wallet atomically
   let txnId: string;
   try {
     txnId = await debitWallet(
       session.uid,
       totalDebit,
       {
-        category: 'cable',
+        category: 'internet',
         status: 'pending',
         reference,
         fee: feeCalc.platformFeeKobo + feeCalc.vatKobo,
         provider: null,
         metadata: {
-          smartCardNumber: normalisedCard,
-          cableProvider: provider,
+          accountNumber: normalisedAccount,
+          internetProvider: provider,
           customerName,
-          bouquetId: bouquet.id,
-          bouquetName: bouquet.name,
-          bouquetCode: bouquet.code,
-          addonIds: addons.map(a => a.id),
-          addonNames: addons.map(a => a.name),
-          addonCodes: addons.map(a => a.code),
-          requestedAmountKobo: baseAmountKobo,
+          planId: plan.id,
+          planName: plan.name,
+          dataLabel: plan.dataLabel,
+          requestedAmountKobo: plan.priceKobo,
           platformFeeKobo: feeCalc.platformFeeKobo,
           vatKobo: feeCalc.vatKobo,
           totalFeeKobo: feeCalc.totalFeeKobo,
@@ -145,13 +127,12 @@ export async function POST(request: NextRequest) {
   }
 
   // 6. Call provider router
-  let providerResult: Awaited<ReturnType<typeof purchaseCable>>;
+  let providerResult: Awaited<ReturnType<typeof purchaseInternet>>;
   try {
-    providerResult = await purchaseCable({
-      smartCardNumber: normalisedCard,
+    providerResult = await purchaseInternet({
+      accountNumber: normalisedAccount,
       provider,
-      bouquetCode: bouquet.code,
-      addonCodes: addons.map(a => a.code),
+      providerPlanId: plan.providerPlanId,
       customerName,
       reference,
     });
@@ -177,14 +158,13 @@ export async function POST(request: NextRequest) {
       updatedAt: Timestamp.now(),
     });
 
-    deliverCableConfirmation({
+    deliverInternetConfirmation({
       userId: session.uid,
       provider,
-      smartCardNumber: normalisedCard,
+      accountNumber: normalisedAccount,
       customerName,
-      bouquetName: bouquet.name,
-      addonNames: addons.map(a => a.name),
-      amountKobo: baseAmountKobo,
+      planName: plan.name,
+      amountKobo: plan.priceKobo,
       reference,
     }).catch(console.error);
 
@@ -193,12 +173,12 @@ export async function POST(request: NextRequest) {
         txnId,
         reference,
         status: 'success',
-        smartCardNumber: normalisedCard,
+        accountNumber: normalisedAccount,
         provider,
         customerName,
-        bouquetName: bouquet.name,
-        addonNames: addons.map(a => a.name),
-        amountKobo: baseAmountKobo,
+        planName: plan.name,
+        dataLabel: plan.dataLabel,
+        amountKobo: plan.priceKobo,
         feeKobo: feeCalc.totalFeeKobo,
         totalChargedKobo: totalDebit,
         providerReference: providerResult.providerReference,
@@ -207,11 +187,11 @@ export async function POST(request: NextRequest) {
           vatKobo: feeCalc.vatKobo,
         },
       },
-      `${bouquet.name} subscription renewed successfully.`
+      `${plan.name} subscription renewed successfully.`
     );
   }
 
-  // Provider failure — refund if provider confirms no charge
+  // Provider failure — refund if confirmed no charge
   await adminDb.collection('transactions').doc(txnId).update({
     status: 'failed',
     provider: providerResult.provider,
@@ -227,18 +207,17 @@ export async function POST(request: NextRequest) {
       metadata: { originalTxnId: txnId, reason: providerResult.error },
     });
 
-    return err('Cable subscription failed. Your wallet has been refunded.', 400, 'PROVIDER_FAILED');
+    return err('Internet subscription failed. Your wallet has been refunded.', 400, 'PROVIDER_FAILED');
   }
 
-  // Provider uncertain — don't refund; pending-tx-sweep cron resolves it
   return err('Payment could not be confirmed. We are investigating and will notify you.', 202, 'PENDING_RESOLUTION');
 }
 
-// ─── GET /api/v1/cable — bouquet/add-on catalogue OR fee preview ─────────────
+// ─── GET /api/v1/internet — plan catalogue OR fee preview ────────────────────
 
 const ListQuerySchema = z.object({
-  provider: z.enum(CABLE_PROVIDERS, {
-    errorMap: () => ({ message: `provider must be one of: ${CABLE_PROVIDERS.join(', ')}` }),
+  provider: z.enum(INTERNET_PROVIDERS, {
+    errorMap: () => ({ message: `provider must be one of: ${INTERNET_PROVIDERS.join(', ')}` }),
   }),
 });
 
@@ -247,8 +226,8 @@ const FeePreviewSchema = z.object({
 });
 
 /**
- * GET /api/v1/cable?provider=dstv         → { bouquets[], addons[] }
- * GET /api/v1/cable?amount=500000         → fee breakdown for checkout preview
+ * GET /api/v1/internet?provider=smile     → { plans[] }
+ * GET /api/v1/internet?amount=500000      → fee breakdown for checkout preview
  */
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -260,7 +239,7 @@ export async function GET(request: NextRequest) {
     const parsed = FeePreviewSchema.safeParse({ amount: searchParams.get('amount') });
     if (!parsed.success) return err((parsed.error as any).errors[0].message, 422);
 
-    const fee = await calculateFee('cable', parsed.data.amount);
+    const fee = await calculateFee('internet', parsed.data.amount);
     return ok({
       amountKobo: parsed.data.amount,
       platformFeeKobo: fee.platformFeeKobo,
@@ -274,10 +253,6 @@ export async function GET(request: NextRequest) {
   const parsed = ListQuerySchema.safeParse(Object.fromEntries(searchParams.entries()));
   if (!parsed.success) return err((parsed.error as any).errors[0].message, 422);
 
-  const [bouquets, addons] = await Promise.all([
-    listBouquets(parsed.data.provider, 'bouquet'),
-    listBouquets(parsed.data.provider, 'addon'),
-  ]);
-
-  return ok({ provider: parsed.data.provider, bouquets, addons });
+  const plans = await listInternetPlans(parsed.data.provider);
+  return ok({ provider: parsed.data.provider, plans });
 }

@@ -15,7 +15,7 @@ import { ok, err, parseIp } from '@/lib/utils/response';
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const VALID_SERVICES = [
-  'airtime', 'data', 'electricity', 'cable', 'exam_pin', 'sms',
+  'airtime', 'data', 'electricity', 'cable', 'internet', 'exam_pin', 'sms',
   'wallet_fund', 'withdrawal', 'transfer', '*',
 ] as const;
 

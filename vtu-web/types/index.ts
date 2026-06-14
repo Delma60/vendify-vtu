@@ -77,6 +77,7 @@ export type TransactionCategory =
   | 'commission'
   | 'cashback'
   | 'fee'
+  | 'internet'          // ← new
   | 'airtime_to_cash';
 
 export type TransactionStatus =
@@ -280,3 +281,4 @@ export interface WhatsappMessageResponse {
   messageId: string | null;
   error?: string;
 }
+
