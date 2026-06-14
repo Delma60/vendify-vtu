@@ -315,24 +315,7 @@ function Sidebar({
 
       {/* Bottom actions */}
       <div className={`border-t py-4 ${collapsed ? 'px-2' : 'px-3'}`} style={{ borderColor: BRAND.border }}>
-        {/* Wallet balance pill */}
-        {!collapsed && (
-          <div
-            className="mb-3 rounded-2xl p-3"
-            style={{ background: 'linear-gradient(135deg, #FFF7ED, #ECFDF5)', border: `1px solid ${BRAND.border}` }}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND.textMuted }}>Wallet</p>
-            <p className="mt-0.5 text-lg font-extrabold" style={{ color: BRAND.text }}>₦0.00</p>
-            <Link
-              href="/wallet"
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition hover:opacity-80"
-              style={{ background: 'rgba(249,115,22,0.12)', color: BRAND.orange }}
-            >
-              <ArrowLeftRight size={12} />
-              Fund wallet
-            </Link>
-          </div>
-        )}
+       
 
         <div className="space-y-0.5">
           <button

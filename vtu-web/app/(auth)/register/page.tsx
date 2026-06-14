@@ -211,7 +211,6 @@ export default function RegisterPage() {
       });
 
       const { data } = await res.json();
-      console.log(data);
       if (!res.ok) throw new Error(data.error ?? "Registration failed");
       setSuccess(true);
       sessionStorage.setItem("pending_uid", data.uid);
