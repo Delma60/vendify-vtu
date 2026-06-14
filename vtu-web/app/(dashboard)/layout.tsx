@@ -219,6 +219,11 @@ function Sidebar({
               text-sm font-medium text-slate-400 transition hover:bg-red-500/10 hover:text-red-400
               ${collapsed ? 'justify-center px-2' : ''}
             `}
+            onClick={() => async function () {
+                const response = await fetch('/api/auth/logout')
+                .then(() => console.log('Logged out'))
+                .catch((err) => console.error('Logout error:', err));
+            }}
           >
             <LogOut size={18} strokeWidth={1.8} className="shrink-0 text-slate-500 group-hover:text-red-400" />
             {!collapsed && <span>Sign out</span>}
