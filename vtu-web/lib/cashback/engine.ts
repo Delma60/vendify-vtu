@@ -270,7 +270,6 @@ function userMatchesSegment(user: User, segment: UserSegment): boolean {
   if (segment === 'all') return true;
 
   if (segment === 'new_users') {
-    // Registered within the last 30 days
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const createdAt =
       user.createdAt instanceof Timestamp
@@ -282,9 +281,9 @@ function userMatchesSegment(user: User, segment: UserSegment): boolean {
   if (segment === 'kyc_tier_1') return (user.kycTier ?? 0) >= 1;
   if (segment === 'kyc_tier_2') return (user.kycTier ?? 0) >= 2;
 
-  if (segment === 'plan_starter') return user.plan === 'starter';
-  if (segment === 'plan_pro') return user.plan === 'pro';
-  if (segment === 'plan_enterprise') return user.plan === 'enterprise';
+  if (segment === 'plan_starter') return user.subscriptionPlanId === 'starter';
+  if (segment === 'plan_pro') return user.subscriptionPlanId === 'pro';
+  if (segment === 'plan_enterprise') return user.subscriptionPlanId === 'enterprise';
 
   return false;
 }
