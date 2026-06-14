@@ -79,6 +79,7 @@ export async function middleware(request: NextRequest) {
   // ── 2. Session resolution ──────────────────────────────────────────────────
   const token = getSessionToken(request);
   const session = token ? await verifySessionToken(token) : null;
+  console.log(request.cookies.getAll())
 
   // ── 3. Auth route redirect (already logged in) ─────────────────────────────
   if (session && isAuthRoute(pathname)) {

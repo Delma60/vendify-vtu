@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Zap, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Smartphone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -21,6 +22,8 @@ export default function LoginPage() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const router = useRouter();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -51,7 +54,7 @@ export default function LoginPage() {
       }
 
       setSuccessMessage('Logged in! Taking you to your dashboard…');
-      setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+      setTimeout(() => { router.push('/dashboard') }, 1200);
     } catch (err: any) {
       setErrorMessage(err.message || 'Something went wrong. Please try again.');
     } finally {
