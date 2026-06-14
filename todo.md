@@ -7,22 +7,22 @@
 ## PHASE 0 — Project Scaffolding & Architecture
 
 ### Web (Next.js) Project
-- [ ] Initialize Next.js 14+ project (App Router) with TypeScript
-- [ ] Configure Tailwind CSS + shadcn/ui component library
+ - [x] Initialize Next.js 14+ project (App Router) with TypeScript
+ - [x] Configure Tailwind CSS + shadcn/ui component library
 - [ ] Set up Firebase project (Firestore, Auth, Storage, Functions, Realtime DB)
-- [ ] Configure Firebase Admin SDK for server-side operations
+ - [x] Configure Firebase Admin SDK for server-side operations
 - [ ] Set up environment variable structure (`.env.local`, `.env.example`)
-- [ ] Set up Nodemailer with SMTP (custom domain via Zoho / Mailgun / Postmark)
+- [x] Set up Nodemailer with SMTP (custom domain via Zoho / Mailgun / Postmark)
 - [ ] Set up ESLint, Prettier, Husky pre-commit hooks
 - [ ] Configure path aliases (`@/components`, `@/lib`, `@/hooks`, etc.)
 - [ ] Set up Vercel deployment pipeline with preview environments
 - [ ] Set up error monitoring (Sentry)
 - [ ] Set up logging service (Axiom / Logtail)
-- [ ] Create shared type definitions (`types/index.ts`)
+ - [x] Create shared type definitions (`types/index.ts`)
 - [ ] Create shared constants (`lib/constants.ts`)
 - [ ] Configure CORS and security headers in `next.config.js`
-- [ ] Set up rate limiting middleware (Upstash Redis + `@upstash/ratelimit`)
-- [ ] Set up API response helper utilities
+ - [x] Set up rate limiting middleware (Upstash Redis + `@upstash/ratelimit`)
+ - [x] Set up API response helper utilities
 - [ ] Set up CI/CD pipeline (GitHub Actions: lint → test → build → deploy)
 - [ ] Set up staging environment (separate Firebase project)
 - [ ] Set up feature flags (Firestore-based config doc for toggling features without deploys)
@@ -80,10 +80,10 @@
 - [ ] BVN/NIN verification via Flutterwave Identity API
 - [x] Referral code generation per user
 - [ ] Referral tracking and reward system
-- [ ] Transaction PIN setup (separate from login password)
+- [x] Transaction PIN setup (separate from login password)
 - [ ] PIN reset via OTP
 - [ ] Contact/beneficiary book (save phone numbers, meter numbers, smartcard numbers with nicknames)
-- [ ] Spending limits (daily/weekly caps — user-set, or admin-enforced per KYC tier)
+- [x] Spending limits (daily/weekly caps — user-set, or admin-enforced per KYC tier)
 - [ ] Right to erasure — NDPR-compliant account deletion (anonymize PII, retain transaction records)
 
 ---
@@ -93,9 +93,9 @@
 ### Flutterwave Integration
 - [ ] Flutterwave SDK setup (`flutterwave-node-v3`)
 - [ ] Virtual Account Number generation per user on registration (Flutterwave Dedicated NUBAN)
-- [ ] Webhook handler for Flutterwave events (`/api/webhooks/flutterwave`)
-- [ ] Webhook signature verification (check `verif-hash` header)
-- [ ] Processed webhook ID deduplication (store in Firestore to prevent double-credit)
+- [x] Webhook handler for Flutterwave events (`/api/webhooks/flutterwave`)
+- [x] Webhook signature verification (check `verif-hash` header)
+- [x] Processed webhook ID deduplication (store in Firestore to prevent double-credit)
 - [ ] Auto wallet top-up on successful bank transfer confirmation
 - [ ] Card payment for wallet funding
 - [ ] USSD payment option
@@ -103,18 +103,18 @@
 
 ### Wallet System
 - [ ] Multi-currency wallet (NGN primary)
-- [ ] Wallet balance stored in **kobo** (integer, never float)
+- [x] Wallet balance stored in **kobo** (integer, never float)
 - [ ] Wallet balance Firestore document with optimistic locking
-- [ ] Atomic Firestore transactions for all debit/credit operations
-- [ ] Transaction history with filtering (date range, type, status), pagination, export (CSV/PDF)
-- [ ] Wallet to wallet transfer between users
-- [ ] Withdrawal requests (to bank account via Flutterwave Transfer API)
+- [x] Atomic Firestore transactions for all debit/credit operations
+- [x] Transaction history with filtering (date range, type, status), pagination, export (CSV/PDF)
+- [x] Wallet to wallet transfer between users
+- [x] Withdrawal requests (to bank account via Flutterwave Transfer API)
 - [ ] **Minimum withdrawal amount** (configurable in admin settings, e.g. ₦500)
 - [ ] **Withdrawal fee** (flat or percentage, configurable per admin)
 - [ ] Bank account management (add, verify via BVN, remove)
-- [ ] Low balance alerts (user-configurable threshold)
-- [ ] Wallet freeze / unfreeze by admin
-- [ ] Transaction receipt PDF download per transaction
+- [x] Low balance alerts (user-configurable threshold)
+- [x] Wallet freeze / unfreeze by admin
+- [x] Transaction receipt PDF download per transaction
 
 ---
 
@@ -135,7 +135,7 @@
 ### Commission & Referral Structure
 - [ ] Per-service commission rates (e.g. 0.5% on airtime, 1% on data, ₦50 flat on electricity)
 - [ ] Multi-level commission: Level 1 (direct referral) = X%, Level 2 = Y%, Level 3 = Z%
-- [ ] Commission credited to wallet immediately after referred user's transaction completes
+- [x] Commission credited to wallet immediately after referred user's transaction completes
 - [ ] Commission history dashboard (who earned from whom, which transaction)
 - [ ] Commission payout threshold (minimum before withdrawal, configurable)
 - [ ] Reseller chain commission: percentage of downline spend flows up the chain per level
@@ -143,10 +143,10 @@
 - [ ] Commission report: total paid out, pending, per user breakdown
 
 ### Cashback Campaigns
-- [ ] Campaign creation: name, start/end date, cashback % or flat amount, target service, target user segment
-- [ ] User segment targeting: all users, KYC tier, subscription plan, new users only
+- [x] Campaign creation: name, start/end date, cashback % or flat amount, target service, target user segment
+- [x] User segment targeting: all users, KYC tier, subscription plan, new users only
 - [ ] Per-campaign cap: max cashback per user, max total campaign budget
-- [ ] Cashback credited to wallet automatically after qualifying transaction
+- [x] Cashback credited to wallet automatically after qualifying transaction
 - [ ] Cashback transaction type in history (distinct from regular credit)
 - [ ] Campaign analytics: total triggered, total paid, ROI estimate
 - [ ] Stacking rule: define if cashback + coupon can stack or not
@@ -249,10 +249,10 @@
 - [ ] Error handling and retry logic
 
 ### Provider Abstraction Layer
-- [ ] Create unified `VTUProvider` interface/class all providers must implement
-- [ ] Per-service provider routing config (e.g. airtime → Bilal, data → SimhostNG)
-- [ ] Automatic failover: if Provider A fails → try Provider B → alert admin
-- [ ] Provider health check cron job (every 5 min)
+- [x] Create unified `VTUProvider` interface/class all providers must implement
+- [x] Per-service provider routing config (e.g. airtime → Bilal, data → SimhostNG)
+- [x] Automatic failover: if Provider A fails → try Provider B → alert admin
+- [x] Provider health check cron job (every 5 min)
 - [ ] Admin UI to toggle providers per service
 - [ ] Cost price vs sell price tracking per provider
 
@@ -281,7 +281,7 @@
 - [ ] Admin UI: DLQ dashboard — list all stuck transactions, full error detail, action buttons
 - [ ] Admin actions on DLQ: Retry manually, Mark as Refunded, Escalate, Add note
 - [ ] DLQ alert: email admin when a new entry is added
-- [ ] Automatic DLQ sweep: cron job every 30 min re-attempts DLQ entries during provider maintenance windows
+- [x] Automatic DLQ sweep: cron job every 30 min re-attempts DLQ entries during provider maintenance windows
 
 ---
 
@@ -446,9 +446,9 @@
 - [ ] Geo-block bypass for admin accounts
 
 ### Fraud Scoring
-- [ ] Per-transaction fraud score (0–100) computed at time of transaction
-- [ ] Score factors: same number topped up >5x in 1 hour, large amount on new account, mismatched geo, velocity spike
-- [ ] Score thresholds: <30 = auto-approve, 30–70 = flag for review, >70 = auto-reject + alert
+- [x] Per-transaction fraud score (0–100) computed at time of transaction
+- [x] Score factors: same number topped up >5x in 1 hour, large amount on new account, mismatched geo, velocity spike
+- [x] Score thresholds: <30 = auto-approve, 30–70 = flag for review, >70 = auto-reject + alert
 - [ ] Flagged transactions queue in admin (review, approve, reject, blacklist user)
 - [ ] Fraud alert email to admin when score > 70
 - [ ] Fraud score history per user (trend up = risk escalation)
@@ -548,10 +548,10 @@
 
 ## PHASE 15 — Security & Compliance
 
-- [ ] Transaction PIN required for all financial operations (debit, withdrawal, transfer)
+- [x] Transaction PIN required for all financial operations (debit, withdrawal, transfer)
 - [ ] IP whitelisting per API key
 - [ ] Anti-fraud rules engine (velocity checks, duplicate detection, geo anomaly)
-- [ ] Fraud scoring per transaction (see Phase 10)
+- [x] Fraud scoring per transaction (see Phase 10)
 - [ ] PCI-DSS awareness (no card data stored — all via Flutterwave)
 - [ ] NIN/BVN verification (Flutterwave Identity API)
 - [ ] AML: transaction threshold alert (₦5M+ single txn, ₦10M+ daily aggregate)
@@ -560,9 +560,9 @@
 - [ ] Firestore security rules: no direct client writes to wallets/transactions collections
 - [ ] HTTPS enforced, HSTS header
 - [ ] Content Security Policy headers
-- [ ] Rate limiting on all public endpoints
+- [x] Rate limiting on all public endpoints
 - [ ] Webhook signature verification (both incoming and outgoing)
-- [ ] Idempotency keys on all purchase endpoints (prevent double-spend)
+- [x] Idempotency keys on all purchase endpoints (prevent double-spend)
 - [ ] Soft delete only (never hard-delete transactions, users, API keys)
 - [ ] Database backup: Firestore export to GCS daily
 - [ ] Firebase billing alerts (prevent unexpected cost spikes)
