@@ -19,6 +19,11 @@ export interface CommissionRate {
   minTransactionAmount: number; // in kobo — don't commission tiny txns
 }
 
+export interface CommissionConfig {
+  rates: CommissionRate[];
+  payoutThreshold: number;  // minimum kobo balance before auto-settlement
+}
+
 export interface CommissionRecord {
   id: string;
   earnedByUserId: string;
@@ -44,21 +49,39 @@ export interface CommissionCalculationResult {
   }>;
 }
 
+// Default payout threshold: ₦500 (50000 kobo)
+const DEFAULT_PAYOUT_THRESHOLD_KOBO = 50_000;
+
 // ─── Load commission config ───────────────────────────────────────────────────
 
 /**
- * Load commission rates from Firestore system config.
- * Falls back to safe defaults if config doc is missing.
+ * Load commission rates AND payout threshold from Firestore system config.
  */
-async function loadCommissionRates(): Promise<CommissionRate[]> {
+async function loadCommissionConfig(): Promise<CommissionConfig> {
   const snap = await adminDb.collection('system_settings').doc('commissions').get();
 
   if (snap.exists) {
-    const data = snap.data() as { rates?: CommissionRate[] };
-    if (data.rates?.length) return data.rates;
+    const data = snap.data() as Partial<CommissionConfig>;
+    return {
+      rates: data.rates?.length ? data.rates : defaultRates(),
+      payoutThreshold: data.payoutThreshold ?? DEFAULT_PAYOUT_THRESHOLD_KOBO,
+    };
   }
 
-  // Safe defaults — admin should configure these via admin panel
+  return {
+    rates: defaultRates(),
+    payoutThreshold: DEFAULT_PAYOUT_THRESHOLD_KOBO,
+  };
+}
+
+/**
+ * Convenience helper — load rates only (keeps existing callers working).
+ */
+async function loadCommissionRates(): Promise<CommissionRate[]> {
+  return (await loadCommissionConfig()).rates;
+}
+
+function defaultRates(): CommissionRate[] {
   return [
     { service: 'airtime',     type: 'percentage', level1: 0.5, level2: 0.2, level3: 0.1, minTransactionAmount: 5000 },
     { service: 'data',        type: 'percentage', level1: 1.0, level2: 0.4, level3: 0.2, minTransactionAmount: 5000 },
@@ -88,7 +111,6 @@ function levelRateValue(rate: CommissionRate, level: number): number {
 export async function calculateCommission(
   txn: Transaction
 ): Promise<CommissionCalculationResult> {
-  // Only commission successful debits for VTU services
   const commissionableCategories = new Set([
     'airtime', 'data', 'electricity', 'cable', 'exam_pin', 'sms', 'bucket_purchase',
   ]);
@@ -146,7 +168,6 @@ export async function triggerCommissions(
   transactionId: string
 ): Promise<void> {
   try {
-    // Verify not already processed
     const existing = await adminDb
       .collection('commissions')
       .where('transactionId', '==', transactionId)
@@ -183,7 +204,6 @@ export async function triggerCommissions(
 
     await batch.commit();
   } catch (error) {
-    // Non-blocking — log but don't crash the parent transaction
     console.error('[commissions:trigger]', transactionId, error);
   }
 }
@@ -194,75 +214,144 @@ export interface CommissionPayoutSummary {
   processed: number;
   credited: number;
   failed: number;
+  skippedBelowThreshold: number;
   totalKoboCredited: number;
 }
 
 /**
  * Process all pending commission records and credit to earner wallets.
- * Designed to be idempotent — safe to run multiple times.
+ *
+ * Threshold behaviour:
+ *  - Groups pending records by user.
+ *  - Only credits a user if their total pending meets the configured
+ *    payoutThreshold (default ₦500).
+ *  - Pass `bypassThreshold = true` for manual admin-triggered payouts.
  */
-export async function settlePendingCommissions(): Promise<CommissionPayoutSummary> {
+export async function settlePendingCommissions(
+  opts: { bypassThreshold?: boolean; userIds?: string[] } = {}
+): Promise<CommissionPayoutSummary> {
   const summary: CommissionPayoutSummary = {
     processed: 0,
     credited: 0,
     failed: 0,
+    skippedBelowThreshold: 0,
     totalKoboCredited: 0,
   };
 
-  // Process in batches to avoid timeout
-  const snap = await adminDb
+  const { bypassThreshold = false, userIds } = opts;
+  const config = await loadCommissionConfig();
+  const threshold = bypassThreshold ? 0 : config.payoutThreshold;
+
+  // Fetch all pending records (up to 500 per run — safe Firestore batch limit)
+  let query = adminDb
     .collection('commissions')
     .where('status', '==', 'pending')
-    .orderBy('createdAt', 'asc')
-    .limit(200)
-    .get();
+    .orderBy('createdAt', 'asc') as FirebaseFirestore.Query;
 
+  if (userIds?.length) {
+    // Manual payout for specific users (admin-triggered or user self-service)
+    query = query.where('earnedByUserId', 'in', userIds.slice(0, 10)); // Firestore 'in' limit
+  }
+
+  const snap = await query.limit(500).get();
   if (snap.empty) return summary;
 
+  // Group records by earner
+  const byUser = new Map<string, typeof snap.docs>();
   for (const doc of snap.docs) {
-    summary.processed++;
-    const commission = { id: doc.id, ...doc.data() } as CommissionRecord;
+    const uid = doc.data().earnedByUserId as string;
+    if (!byUser.has(uid)) byUser.set(uid, []);
+    byUser.get(uid)!.push(doc);
+  }
 
-    try {
-      // Verify source transaction still succeeded (refunds could invalidate it)
-      const txnSnap = await adminDb.collection('transactions').doc(commission.transactionId).get();
-      if (!txnSnap.exists || txnSnap.data()?.status !== 'success') {
-        await doc.ref.update({ status: 'cancelled', updatedAt: Timestamp.now() });
-        continue;
+  // Process each earner independently
+  for (const [earnedByUserId, docs] of byUser.entries()) {
+    const totalPending = docs.reduce((sum, d) => sum + (d.data().amount as number), 0);
+
+    // Threshold check — skip unless total meets the minimum
+    if (totalPending < threshold) {
+      summary.skippedBelowThreshold++;
+      continue;
+    }
+
+    for (const doc of docs) {
+      summary.processed++;
+      const commission = { id: doc.id, ...doc.data() } as CommissionRecord;
+
+      try {
+        // Verify source transaction still succeeded (refunds could invalidate it)
+        const txnSnap = await adminDb.collection('transactions').doc(commission.transactionId).get();
+        if (!txnSnap.exists || txnSnap.data()?.status !== 'success') {
+          await doc.ref.update({ status: 'cancelled', updatedAt: Timestamp.now() });
+          continue;
+        }
+
+        await creditWallet(commission.earnedByUserId, commission.amount, {
+          category: 'commission',
+          status: 'success',
+          reference: generateReference('commission'),
+          metadata: {
+            commissionId: commission.id,
+            sourceUserId: commission.sourceUserId,
+            transactionId: commission.transactionId,
+            level: commission.level,
+            service: commission.service,
+          },
+        });
+
+        await doc.ref.update({
+          status: 'credited',
+          creditedAt: Timestamp.now(),
+        });
+
+        summary.credited++;
+        summary.totalKoboCredited += commission.amount;
+
+        notifyCommissionCredited(commission).catch(console.error);
+      } catch (error) {
+        console.error('[commissions:settle]', commission.id, error);
+        summary.failed++;
       }
-
-      // Credit the earner's wallet
-      await creditWallet(commission.earnedByUserId, commission.amount, {
-        category: 'commission',
-        status: 'success',
-        reference: generateReference('commission'),
-        metadata: {
-          commissionId: commission.id,
-          sourceUserId: commission.sourceUserId,
-          transactionId: commission.transactionId,
-          level: commission.level,
-          service: commission.service,
-        },
-      });
-
-      // Mark as credited
-      await doc.ref.update({
-        status: 'credited',
-        creditedAt: Timestamp.now(),
-      });
-
-      summary.credited++;
-      summary.totalKoboCredited += commission.amount;
-
-      // Notify earner (non-blocking)
-      notifyCommissionCredited(commission).catch(console.error);
-    } catch (error) {
-      console.error('[commissions:settle]', commission.id, error);
-      summary.failed++;
     }
   }
 
   return summary;
+}
+
+// ─── USER-TRIGGERED EARLY WITHDRAWAL ─────────────────────────────────────────
+
+/**
+ * Allow a user to request immediate payout of their pending commissions,
+ * bypassing the threshold. Returns the total amount credited.
+ *
+ * Safe to call from an API route — idempotent.
+ */
+export async function requestCommissionWithdrawal(userId: string): Promise<{
+  totalCredited: number;
+  recordsSettled: number;
+  alreadyEmpty: boolean;
+}> {
+  const pendingSnap = await adminDb
+    .collection('commissions')
+    .where('earnedByUserId', '==', userId)
+    .where('status', '==', 'pending')
+    .orderBy('createdAt', 'asc')
+    .get();
+
+  if (pendingSnap.empty) {
+    return { totalCredited: 0, recordsSettled: 0, alreadyEmpty: true };
+  }
+
+  const summary = await settlePendingCommissions({
+    bypassThreshold: true,
+    userIds: [userId],
+  });
+
+  return {
+    totalCredited: summary.totalKoboCredited,
+    recordsSettled: summary.credited,
+    alreadyEmpty: false,
+  };
 }
 
 // ─── HISTORY (user-facing) ────────────────────────────────────────────────────
@@ -281,6 +370,8 @@ export async function getCommissionHistory(opts: CommissionHistoryOptions): Prom
   pageSize: number;
   totalPending: number;
   totalCredited: number;
+  payoutThreshold: number;
+  canWithdraw: boolean;
 }> {
   const page = Math.max(1, opts.page ?? 1);
   const pageSize = Math.min(50, opts.pageSize ?? 20);
@@ -294,19 +385,8 @@ export async function getCommissionHistory(opts: CommissionHistoryOptions): Prom
     query = query.where('status', '==', opts.status);
   }
 
-  const snap = await query
-    .limit(pageSize + 1)
-    .offset((page - 1) * pageSize)
-    .get();
-
-  const hasMore = snap.docs.length > pageSize;
-  const commissions = snap.docs.slice(0, pageSize).map(d => ({
-    id: d.id,
-    ...d.data(),
-  })) as CommissionRecord[];
-
-  // Aggregate totals (separate queries for accuracy)
-  const [pendingSnap, creditedSnap] = await Promise.all([
+  const [snap, pendingSnap, creditedSnap, config] = await Promise.all([
+    query.limit(pageSize + 1).offset((page - 1) * pageSize).get(),
     adminDb.collection('commissions')
       .where('earnedByUserId', '==', opts.userId)
       .where('status', '==', 'pending')
@@ -315,12 +395,28 @@ export async function getCommissionHistory(opts: CommissionHistoryOptions): Prom
       .where('earnedByUserId', '==', opts.userId)
       .where('status', '==', 'credited')
       .get(),
+    loadCommissionConfig(),
   ]);
+
+  const hasMore = snap.docs.length > pageSize;
+  const commissions = snap.docs.slice(0, pageSize).map(d => ({
+    id: d.id,
+    ...d.data(),
+  })) as CommissionRecord[];
 
   const totalPending = pendingSnap.docs.reduce((sum, d) => sum + (d.data().amount as number), 0);
   const totalCredited = creditedSnap.docs.reduce((sum, d) => sum + (d.data().amount as number), 0);
 
-  return { commissions, hasMore, page, pageSize, totalPending, totalCredited };
+  return {
+    commissions,
+    hasMore,
+    page,
+    pageSize,
+    totalPending,
+    totalCredited,
+    payoutThreshold: config.payoutThreshold,
+    canWithdraw: totalPending > 0, // user can always request early withdrawal
+  };
 }
 
 // ─── ADMIN REPORT ─────────────────────────────────────────────────────────────
@@ -357,11 +453,9 @@ export async function getCommissionReport(opts: {
 // ─── Notification helper ──────────────────────────────────────────────────────
 
 async function notifyCommissionCredited(commission: CommissionRecord): Promise<void> {
-  const [userSnap] = await Promise.all([
-    adminDb.collection('users').doc(commission.earnedByUserId).get(),
-  ]);
-
+  const userSnap = await adminDb.collection('users').doc(commission.earnedByUserId).get();
   if (!userSnap.exists) return;
+
   const user = userSnap.data() as { email: string; displayName: string; notifications: { email: boolean } };
   if (!user.notifications.email) return;
 

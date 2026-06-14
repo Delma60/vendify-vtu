@@ -6,10 +6,13 @@ import { settlePendingCommissions } from '@/lib/commissions/engine';
 
 /**
  * GET /api/cron/commission-payout
+ *
  * Settle all pending commission records into earner wallets.
+ * Only credits users whose total pending meets the configured payoutThreshold.
+ *
  * Schedule: Daily at 06:00 WAT (Vercel Cron: "0 5 * * *")
  *
- * Vercel cron.json:
+ * vercel.json:
  *   { "path": "/api/cron/commission-payout", "schedule": "0 5 * * *" }
  */
 export async function GET(request: NextRequest) {

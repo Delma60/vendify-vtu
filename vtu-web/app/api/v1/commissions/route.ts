@@ -15,7 +15,12 @@ const QuerySchema = z.object({
 
 /**
  * GET /api/v1/commissions
- * Returns the authenticated user's commission history with totals.
+ *
+ * Returns the authenticated user's commission history with:
+ * - Paginated records
+ * - Pending and credited totals
+ * - Configured payout threshold
+ * - Whether the user can request an early withdrawal
  */
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -39,6 +44,9 @@ export async function GET(request: NextRequest) {
     summary: {
       totalPendingKobo: result.totalPending,
       totalCreditedKobo: result.totalCredited,
+      payoutThresholdKobo: result.payoutThreshold,
+      canWithdraw: result.canWithdraw,
+      pendingMeetsThreshold: result.totalPending >= result.payoutThreshold,
     },
     pagination: {
       page: result.page,
