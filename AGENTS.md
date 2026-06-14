@@ -4,6 +4,14 @@
 
 ---
 
+## Brand & UI tone
+- Palette: white background, vibrant orange-green gradient hero, warm coral/orange primary (`#F97316`), fresh green accent (`#22C55E`), dark charcoal text (`#111827`)
+- Typography: large, bold, friendly headlines, no jargon.
+- Signature hero effect: floating "quick top-up" card that feels instantly usable.
+- Voice: everyday Nigerian English with straightforward copy like "Top up in seconds", "Pay your bills", "Send money".
+
+---
+
 ## Project Structure Overview
 
 This platform consists of **two separate projects**:

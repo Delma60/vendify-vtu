@@ -42,7 +42,7 @@
 - [ ] Onboarding screens (first-launch tutorial)
 - [ ] App Store & Play Store asset preparation (screenshots, descriptions, icons)
 - [ ] Separate bottom nav layout (Home, Services, History, Wallet, Profile)
-- [ ] Floating action button for quick top-up on home screen
+- [ ] Floating quick top-up hero card / CTA to make the product feel ready to use immediately
 
 ---
 

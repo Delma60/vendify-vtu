@@ -1,274 +1,579 @@
-// vtu-web/app/page.tsx
-'use client';
+"use client";
+import React, { useState } from "react";
+import {
+  Smartphone,
+  Wifi,
+  Tv,
+  Zap,
+  ChevronDown,
+  Menu,
+  X,
+  MessageCircle,
+  ArrowRight,
+  ShieldCheck,
+  HeadphonesIcon,
+  BookOpen,
+  Mail,
+  Landmark,
+  Download,
+  CheckCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Zap, 
-  Cpu, 
-  Coins, 
-  Layers, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Smartphone, 
-  Code, 
-  ArrowRight 
-} from 'lucide-react';
-
-interface FeaturePlan {
-  apiAccess: boolean;
-  bucketAccess: boolean;
-  loanAccess: boolean;
-  whitelabelAccess: boolean;
-  maxDailyTransactions: number | null;
-  rateDiscount: number;
+// --- TYPES ---
+interface PricingData {
+  network: string;
+  plan: string;
+  price: string;
+  validity: string;
 }
 
-interface Plan {
-  id: string;
-  name: string;
-  description: string;
-  monthlyPrice: number; // in kobo
-  annualPrice: number;  // in kobo
-  features: FeaturePlan;
-}
+// --- DATA ---
+const SERVICES = [
+  {
+    icon: <Wifi />,
+    title: "Cheap Data",
+    desc: "Instant SME, Gifting & Corporate data for all networks.",
+  },
+  {
+    icon: <Smartphone />,
+    title: "Airtime Top-up",
+    desc: "Get instant airtime recharge with 2% discount.",
+  },
+  {
+    icon: <Tv />,
+    title: "Cable TV",
+    desc: "DStv, GOtv, and Startimes subscriptions made easy.",
+  },
+  {
+    icon: <Zap />,
+    title: "Utility Bills",
+    desc: "Pay electricity bills (EKEDC, IKEDC, etc) instantly.",
+  },
+  {
+    icon: <BookOpen />,
+    title: "Exam Pins",
+    desc: "Purchase WAEC, NECO, and NABTEB result checkers.",
+  },
+  {
+    icon: <Mail />,
+    title: "Bulk SMS",
+    desc: "Send customized bulk SMS to any number at low rates.",
+  },
+  {
+    icon: <Landmark />,
+    title: "Airtime to Cash",
+    desc: "Convert your excess airtime to cash in your bank account.",
+  },
+  {
+    icon: <ShieldCheck />,
+    title: "Agent Program",
+    desc: "Become a reseller and earn commissions on every sale.",
+  },
+];
 
-export default function LandingPage() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const PRICING: PricingData[] = [
+  { network: "MTN", plan: "1GB SME", price: "₦255", validity: "30 Days" },
+  {
+    network: "Airtel",
+    plan: "1GB Corporate",
+    price: "₦280",
+    validity: "30 Days",
+  },
+  { network: "Glo", plan: "2.9GB", price: "₦900", validity: "30 Days" },
+  { network: "9Mobile", plan: "1GB", price: "₦180", validity: "30 Days" },
+];
 
-  // Dynamic initialization fetching raw plan structures from the unified database
-  useEffect(() => {
-    async function fetchPlans() {
-      try {
-        const res = await fetch('/api/v1/plans');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.plans) {
-            setPlans(data.plans);
-          }
-        }
-      } catch (err) {
-        console.error('Failed fetching core plans:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchPlans();
-  }, []);
+const App = () => {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const app_name = process.env.NEXT_PUBLIC_APP_NAME;
+  const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
-      
-      {/* ─── NAVIGATION BAR ────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-white font-sans text-gray-900 scroll-smooth">
+      {/* --- NAVIGATION --- */}
+      <nav className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="bg-[--brand-orange] p-1.5 rounded-lg">
+              <Zap className="h-6 w-6 text-white fill-current" />
             </div>
-            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              Vendify<span className="text-indigo-500">.vtu</span>
-            </span>
+            <span className="text-xl font-bold tracking-tight">{app_name}</span>
           </div>
-          <div className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm font-medium text-slate-400 transition hover:text-white">Features</a>
-            <a href="#pricing" className="text-sm font-medium text-slate-400 transition hover:text-white">Pricing</a>
-            <a href="#api" className="text-sm font-medium text-slate-400 transition hover:text-white">Developer API</a>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/login" className="text-sm font-medium text-slate-300 transition hover:text-white">Sign In</a>
-            <a href="/register" className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-              Get Started
+
+          <div className="hidden md:flex space-x-8 items-center text-sm font-semibold text-gray-600">
+            <a href="#services" className="hover:text-[--brand-orange] transition">
+              Services
             </a>
+            <a href="#pricing" className="hover:text-[--brand-orange] transition">
+              Pricing
+            </a>
+            <a href="#about" className="hover:text-[--brand-orange] transition">
+              About
+            </a>
+            <button
+              onClick={() => router.push("/login")}
+              className="text-[--brand-orange]"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => router.push("/register")}
+              className="bg-[--brand-orange] text-white px-6 py-2 rounded-full hover:bg-[--brand-orange-dark] shadow-md transition"
+            >
+              Register
+            </button>
           </div>
+
+          <button
+            className="md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X /> : <Menu />}
+          </button>
         </div>
       </nav>
 
-      {/* ─── HERO SECTION ──────────────────────────────────────── */}
-      <header className="relative overflow-hidden pt-24 pb-20 md:pt-32 lg:pb-32">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950" />
-        <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
-          <div className="mx-auto max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-400 backdrop-blur-sm">
-              <ShieldCheck className="h-3.5 w-3.5" /> Fully secure Flutterwave integrated pipelines
-            </div>
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white sm:text-6xl bg-gradient-to-b from-white to-slate-300 bg-clip-text">
-              The Sovereign Engine for VTU Vending & Utility APIs
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-slate-400">
-              Deploy automated digital telecommunication inventories effortlessly. Disburse airtime, sub-meter data configurations, cable subscriptions, or embed flexible retail loan structures directly.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <a href="/register" className="group rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-indigo-500 hover:shadow-indigo-500/10 flex items-center gap-2">
-                Launch Virtual Wallet 
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
-              <a href="#api" className="rounded-xl border border-slate-800 bg-slate-900/50 px-6 py-3.5 text-sm font-semibold text-slate-300 backdrop-blur-sm transition hover:bg-slate-900 hover:text-white">
-                Developer SDK Documentation
-              </a>
-            </div>
-          </div>
+      {/* --- HERO SECTION --- */}
+      <section className="relative pt-12 pb-20 lg:pt-24 lg:pb-32 overflow-hidden bg-white">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-50 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-blue-100/50 blur-[100px]" />
         </div>
-      </header>
 
-      {/* ─── CORE PLATFORM FEATURES ────────────────────────────── */}
-      <section id="features" className="py-24 border-y border-slate-900 bg-slate-950/40 relative">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold uppercase tracking-wider text-indigo-500">Enterprise Core Capabilities</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Everything required to rule the virtual grid.</p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-12 lg:max-w-none lg:grid-cols-3">
-              
-              <div className="flex flex-col rounded-2xl border border-slate-900 bg-slate-900/20 p-8 backdrop-blur-sm">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                    <Smartphone className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  High-Speed Telecommunications Vending
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-400">
-                  <p className="flex-auto">Deploy lightning-fast API operations tracking airtime/data options for MTN, Airtel, Glo, and 9mobile within milliseconds.</p>
-                </dd>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* LEFT COLUMN: TEXT CONTENT */}
+            <div className="text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 mb-6 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[--brand-orange]"></span>
+                </span>
+                <span className="text-[--brand-orange-dark] text-xs font-bold uppercase tracking-widest">
+                  Reliable & Automated VTU
+                </span>
               </div>
 
-              <div className="flex flex-col rounded-2xl border border-slate-900 bg-slate-900/20 p-8 backdrop-blur-sm">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                    <Code className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  Developer First REST API
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-400">
-                  <p className="flex-auto">Integrated endpoint security infrastructure featuring multi-token provisioning, webhook tracking, and explicit rate limit configurations.</p>
-                </dd>
-              </div>
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.1] mb-6">
+                Digital Solutions <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--brand-orange] to-blue-400">
+                  Smart Connection.
+                </span>
+              </h1>
 
-              <div className="flex flex-col rounded-2xl border border-slate-900 bg-slate-900/20 p-8 backdrop-blur-sm">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                    <Coins className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  Dynamic Credit & Cashbacks
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-400">
-                  <p className="flex-auto">Automated cashback mechanics calculate split percentages on each volume sequence, boosting yield metrics across distributed downlines.</p>
-                </dd>
-              </div>
+              <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-xl">
+                Join 50,000+ Nigerians saving money on data, airtime, and
+                utility bills. Instant delivery, even at midnight.
+              </p>
 
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── DYNAMIC PRICING COMPARISON ────────────────────────── */}
-      <section id="pricing" className="py-24 lg:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-base font-semibold text-indigo-500 uppercase tracking-widest">Pricing Strategy</h2>
-            <p className="mt-2 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Select your structural distribution tier.</p>
-            <p className="mt-4 text-base text-slate-400">Enjoy 2 months free with annual billing cycles.</p>
-
-            {/* Billing Toggle Switch */}
-            <div className="mt-10 flex justify-center">
-              <div className="relative flex rounded-full bg-slate-900 p-1 border border-slate-800">
-                <button 
-                  onClick={() => setBillingPeriod('monthly')}
-                  className={`${billingPeriod === 'monthly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'} rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all`}
-                >
-                  Monthly Cycle
+              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                <button onClick={() => router.push("/login")} className="bg-[--brand-orange] text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[--brand-orange-dark] shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-2 group">
+                  Get Started Free
+                  <ArrowRight
+                    size={20}
+                    className="group-hover:translate-x-1 transition-transform"
+                  />
                 </button>
-                <button 
-                  onClick={() => setBillingPeriod('annual')}
-                  className={`${billingPeriod === 'annual' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'} rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all`}
-                >
-                  Annual (2 Months Free)
+                <button className="bg-white text-gray-900 border border-gray-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                  <Download size={20} className="text-[--brand-orange]" /> Download App
                 </button>
               </div>
-            </div>
-          </div>
 
-          {/* Pricing Blocks Container */}
-          {loading ? (
-            <div className="mt-16 flex justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-            </div>
-          ) : (
-            <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-y-6 sm:mt-20 lg:max-w-none lg:grid-cols-4 lg:gap-x-4">
-              {plans.map((plan) => {
-                const isEnterprise = plan.name.toLowerCase() === 'enterprise';
-                const basePriceKobo = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
-                const displayPrice = (basePriceKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 0 });
-
-                return (
-                  <div 
-                    key={plan.id}
-                    className={`flex flex-col justify-between rounded-3xl p-8 xl:p-10 transition-all border ${
-                      isEnterprise 
-                        ? 'bg-gradient-to-b from-indigo-950/50 to-slate-950 border-indigo-500 shadow-xl shadow-indigo-500/5 relative lg:-translate-y-4' 
-                        : 'bg-slate-900/40 border-slate-900 hover:border-slate-800'
-                    }`}
-                  >
-                    {isEnterprise && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-white">
-                        Recommended Tier
-                      </span>
-                    )}
-                    <div>
-                      <h3 className="text-lg font-bold text-white capitalize">{plan.name}</h3>
-                      <p className="mt-2 text-sm text-slate-400 min-h-[40px]">{plan.description}</p>
-                      <p className="mt-6 flex items-baseline gap-x-1">
-                        <span className="text-4xl font-extrabold tracking-tight text-white">₦{displayPrice}</span>
-                        <span className="text-sm font-semibold text-slate-400">/{billingPeriod === 'monthly' ? 'mo' : 'yr'}</span>
-                      </p>
-
-                      <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-slate-300 border-t border-slate-900 pt-6">
-                        <li className="flex gap-x-3">
-                          <CheckCircle2 className="h-5 w-5 flex-none text-indigo-400" />
-                          <span>Max Daily Txs: <strong>{plan.features.maxDailyTransactions ?? 'Unlimited'}</strong></span>
-                        </li>
-                        <li className="flex gap-x-3">
-                          <CheckCircle2 className="h-5 w-5 flex-none text-indigo-400" />
-                          <span>Utility Discount: <strong>{plan.features.rateDiscount}% Across Board</strong></span>
-                        </li>
-                        <li className={`${plan.features.apiAccess ? 'text-slate-200' : 'text-slate-600 line-through'} flex gap-x-3`}>
-                          <CheckCircle2 className={`h-5 w-5 flex-none ${plan.features.apiAccess ? 'text-indigo-400' : 'text-slate-700'}`} />
-                          <span>Production API Endpoint Hooks</span>
-                        </li>
-                        <li className={`${plan.features.loanAccess ? 'text-slate-200' : 'text-slate-600 line-through'} flex gap-x-3`}>
-                          <CheckCircle2 className={`h-5 w-5 flex-none ${plan.features.loanAccess ? 'text-indigo-400' : 'text-slate-700'}`} />
-                          <span>Micro-Credit Infrastructure Access</span>
-                        </li>
-                        <li className={`${plan.features.whitelabelAccess ? 'text-slate-200' : 'text-slate-600 line-through'} flex gap-x-3`}>
-                          <CheckCircle2 className={`h-5 w-5 flex-none ${plan.features.whitelabelAccess ? 'text-indigo-400' : 'text-slate-700'}`} />
-                          <span>Custom White-Label Subdomain Setup</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <a
-                      href={`/register?plan=${plan.id}&cycle=${billingPeriod}`}
-                      className={`mt-8 block w-full rounded-xl py-3 px-4 text-center text-sm font-semibold transition-all ${
-                        isEnterprise 
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-500/10' 
-                          : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white'
-                      }`}
+              {/* Micro-Social Proof */}
+              <div className="flex items-center gap-4 border-t border-gray-100 pt-8">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden"
                     >
-                      Provision {plan.name} Tier
-                    </a>
-                  </div>
-                );
-              })}
+                      <img
+                        src={`https://i.pravatar.cc/100?img=${i + 10}`}
+                        alt="user"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 font-medium">
+                  <span className="text-gray-900 font-bold">4.8/5</span> from
+                  2,000+ reviews
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* RIGHT COLUMN: THE IMAGE */}
+            <div className="relative lg:block">
+              <div className="relative z-10 w-full animate-float">
+                <Image
+                  src="/banner01.jpg"
+                  alt="Spur Connect Interface"
+                  width={500}
+                  height={500}
+                  className="w-full h-auto rounded-[2.5rem] shadow-2xl border-8 border-white"
+                />
+
+                {/* Floating Stats Card */}
+                <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl border border-gray-50 flex items-center gap-4 animate-bounce-slow">
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <CheckCircle2 className="text-green-600" size={24} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase">
+                      Transaction
+                    </p>
+                    <p className="text-sm font-black text-gray-900">
+                      Success: 100%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative Ring behind image */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border border-blue-50 rounded-full z-0" />
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes float {
+            0% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-20px);
+            }
+            100% {
+              transform: translateY(0px);
+            }
+          }
+          @keyframes bounce-slow {
+            0%,
+            100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
+          }
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
+          .animate-bounce-slow {
+            animation: bounce-slow 4s ease-in-out infinite;
+          }
+        `}</style>
+      </section>
+
+      {/* --- IMAGE INSERTION --- */}
+      {/* <div className="max-w-7xl mx-auto px-4 -mt-20 relative z-20">
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+          <Image 
+            src="/banner01.jpg" // Using MadiTel's hero image as inspiration
+            alt="Spur Connect Dashboard" 
+            className="w-full h-auto object-cover" 
+            width={1000}
+            height={600}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+          <div className="absolute bottom-8 left-8 text-white text-left">
+            <h3 className="text-2xl font-bold">Your Digital Hub.</h3>
+            <p className="text-sm opacity-90">Seamless transactions at your fingertips.</p>
+          </div>
+        </div>
+      </div> */}
+
+      {/* --- FEATURES (Like MadiTel) --- */}
+      <section id="services" className="py-12 max-w-7xl mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold">Our Awesome Services</h2>
+          <p className="text-gray-500 mt-4">
+            Everything you need to stay connected in one platform.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {SERVICES.map((s, i) => (
+            <div
+              key={i}
+              className="p-8 rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-xl transition-all group bg-white"
+            >
+              <div className="w-12 h-12 bg-blue-50 text-[--brand-orange] rounded-xl flex items-center justify-center mb-6 group-hover:bg-[--brand-orange] group-hover:text-white transition-colors">
+                {React.cloneElement(s.icon as React.ReactElement, { size: 24 })}
+              </div>
+              <h3 className="text-xl font-bold mb-3">{s.title}</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ─── FOOTER ────────────────────────────────────────────── */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-12 text-center text-sm text-slate-500">
-        <p>© 2026 Vendify VTU System Network. All rights managed securely via Flutterwave infrastructure.</p>
+      {/* --- ABOUT SECTION with Image --- */}
+      <section id="about" className="py-24 bg-blue-50">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="text-[--brand-orange-dark] bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
+              ABOUT US
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900 mt-6 mb-4">
+              Why Choose Spur Connect?
+            </h2>
+            <p className="text-lg text-gray-700 leading-relaxed mb-6">
+              At Spur Connect, we believe in making digital transactions
+              seamless and accessible for everyone. Our platform is built on
+              principles of speed, security, and affordability, ensuring you get
+              the best value for your money with every transaction.
+            </p>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-[--brand-orange]" /> Instant
+                Service Delivery
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-[--brand-orange]" /> 24/7
+                Customer Support
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle size={20} className="text-[--brand-orange]" /> Secure
+                Payment Gateways
+              </li>
+            </ul>
+            <button className="mt-8 bg-[--brand-orange] text-white px-8 py-3 rounded-full hover:bg-[--brand-orange-dark] transition shadow-md">
+              Learn More
+            </button>
+          </div>
+          <div></div>
+        </div>
+      </section>
+
+      {/* --- APP DOWNLOAD SECTION --- */}
+      <section className="relative py-20 mx-4 my-10 rounded-md overflow-hidden">
+        {/* Background image layer (covers) */}
+        <div
+          className="absolute inset-0 bg-center bg-cover"
+          style={{ backgroundImage: "url('/phone.png')" }}
+          aria-hidden="true"
+        />
+
+        {/* Dark gradient overlay to guarantee readable text */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/35"
+          aria-hidden="true"
+        />
+
+        {/* Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+            Experience better mobile banking
+          </h2>
+
+          <p className="mx-auto max-w-2xl text-lg text-white/90 mb-8">
+            Download our mobile app for seamless transactions, real-time
+            notifications, and 24/7 support — all from your phone.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            {/* App Store */}
+            <a
+              href="/app-store-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download on the App Store (opens in new tab)"
+              className="w-full sm:w-auto inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white text-black font-semibold shadow-md hover:shadow-lg transition focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+            >
+              {/* simple phone/apple-like icon (generic) */}
+              <svg
+                className="w-6 h-6 flex-none"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <rect x="5" y="2" width="14" height="20" rx="3" />
+              </svg>
+
+              <span className="text-left leading-none">
+                <span className="text-xs block">Download on the</span>
+                <span className="text-lg font-bold block">App Store</span>
+              </span>
+            </a>
+
+            {/* Google Play */}
+            <a
+              href="/google-play-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get it on Google Play (opens in new tab)"
+              className="w-full sm:w-auto inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white text-black font-semibold shadow-md hover:shadow-lg transition focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+            >
+              {/* generic play icon */}
+              <svg
+                className="w-6 h-6 flex-none"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M4 2v20l16-10L4 2z" />
+              </svg>
+
+              <span className="text-left leading-none">
+                <span className="text-xs block">Get it on</span>
+                <span className="text-lg font-bold block">Google Play</span>
+              </span>
+            </a>
+          </div>
+
+          {/* Optional small note */}
+          <p className="mt-6 text-sm text-white/70">
+            Available on iOS and Android.
+          </p>
+        </div>
+      </section>
+
+      {/* --- PRICING SECTION --- */}
+      <section id="pricing" className="py-24 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-black">Our Data Pricing</h2>
+            <p className="text-gray-500">Affordable plans tailored for you.</p>
+          </div>
+          <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-200">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-sm font-bold">Network</th>
+                  <th className="px-6 py-4 text-sm font-bold">Plan</th>
+                  <th className="px-6 py-4 text-sm font-bold">Price</th>
+                  <th className="px-6 py-4 text-sm font-bold">Validity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {PRICING.map((p, i) => (
+                  <tr key={i} className="hover:bg-blue-50 transition">
+                    <td className="px-6 py-4 font-semibold">{p.network}</td>
+                    <td className="px-6 py-4 text-gray-600">{p.plan}</td>
+                    <td className="px-6 py-4 font-bold text-[--brand-orange]">
+                      {p.price}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-400">
+                      {p.validity}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* --- FAQ SECTION --- */}
+      <section id="faq" className="py-24 max-w-3xl mx-auto px-4">
+        <h2 className="text-3xl font-bold text-center mb-12">
+          Frequently Asked Questions
+        </h2>
+        <div className="space-y-4">
+          {[
+            {
+              q: "Is MadiTel/Spur Connect secure?",
+              a: "Yes, we use bank-level encryption to ensure all transactions and user data are 100% protected.",
+            },
+            {
+              q: "Can I check my WAEC/NECO results here?",
+              a: "Absolutely! Simply navigate to the Exam Pin section to purchase your result checker instantly.",
+            },
+            {
+              q: "How do I become an Agent?",
+              a: "Register an account and upgrade your status to 'Agent' in your dashboard to enjoy wholesale prices.",
+            },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="border border-gray-200 rounded-2xl overflow-hidden"
+            >
+              <button
+                className="w-full text-left px-6 py-5 font-bold flex justify-between items-center"
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              >
+                {item.q}
+                <ChevronDown
+                  className={`transition-transform ${openFaq === i ? "rotate-180" : ""}`}
+                />
+              </button>
+              {openFaq === i && (
+                <div className="px-6 pb-5 text-gray-500 text-sm leading-relaxed">
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- FOOTER --- */}
+      <footer className="bg-gray-900 text-gray-400 py-20 px-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center gap-2 mb-6">
+              <Zap className="text-blue-500 fill-current" />
+              <span className="text-white text-xl font-bold">{app_name}</span>
+            </div>
+            <p className="text-sm">
+              Your all-in-one digital solution platform for airtime, data, and
+              bill payments.
+            </p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-6">Links</h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <a href="#" className="hover:text-blue-400">
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-blue-400">
+                  Pricing Plan
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-blue-400">
+                  Contact Us
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-6">Contact</h4>
+            <p className="text-sm">Ilorin, Kwara State, Nigeria</p>
+            <p className="text-sm mt-2">support@spurconnect.com</p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-6">Newsletter</h4>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="Email"
+                className="bg-gray-800 border-none rounded-lg px-4 py-2 w-full text-sm outline-none focus:ring-1 ring-blue-500"
+              />
+              <button className="bg-[--brand-orange] text-white px-4 py-2 rounded-lg text-sm font-bold">
+                Join
+              </button>
+            </div>
+          </div>
+        </div>
       </footer>
+
+      {/* WhatsApp Support Button */}
+      <a
+        href="https://wa.me/234..."
+        className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50"
+      >
+        <MessageCircle size={28} />
+      </a>
     </div>
   );
-}
+};
+
+export default App;

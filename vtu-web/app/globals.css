@@ -1,16 +1,54 @@
+/* vtu-web/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  background-color: #020617;
+  background-color: #ffffff;
+
+  /* Brand tokens */
+  --brand-orange: #F97316;
+  --brand-orange-dark: #EA6A00;
+  --brand-green: #16A34A;
+  --brand-green-light: #22C55E;
+  --brand-yellow: #FBBF24;
+
+  /* Surface */
+  --surface-bg: #FFFFFF;
+  --surface-warm: #FFFBF5;
+  --surface-muted: #F9FAFB;
+  --surface-border: #E5E7EB;
+
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 25%),
-    radial-gradient(circle at bottom, rgba(168, 85, 247, 0.16), transparent 18%);
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Utility: brand gradient */
+.gradient-brand {
+  background: linear-gradient(135deg, #F97316 0%, #FBBF24 50%, #22C55E 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #FFF7ED 0%, #ECFDF5 100%);
+}
+
+/* Orange glow for CTAs */
+.shadow-brand {
+  box-shadow: 0 4px 24px rgba(249, 115, 22, 0.25);
 }

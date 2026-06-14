@@ -5,24 +5,12 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Zap, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
-  ShieldAlert, 
-  CheckCircle2,
-  Smartphone
-} from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Smartphone } from 'lucide-react';
 
-// ─── VALIDATION SCHEMA ────────────────────────────────────────────────────────
-// Enforces precise credential shapes matching your backend rules
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Please provide a valid business email address.' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters long.' }),
-  twoFactorCode: z.string().length(6, { message: '2FA verification pin must be exactly 6 digits.' }).optional(),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
+  twoFactorCode: z.string().length(6, { message: 'Enter the 6-digit code from your app.' }).optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -34,208 +22,181 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  // ─── AUTHENTICATION SUBMISSION FLOW ─────────────────────────────────────────
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      // Mocking device metadata fingerprinting payload for fraud engines
-      const mockDeviceFingerprint = btoa(navigator.userAgent).slice(0, 16);
+      const deviceToken = btoa(navigator.userAgent).slice(0, 16);
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          deviceToken: mockDeviceFingerprint,
-        }),
+        body: JSON.stringify({ ...data, deviceToken }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        // Handle explicit 2FA challenge interception
         if (result.code === 'TWO_FACTOR_REQUIRED') {
           setRequires2FA(true);
           return;
         }
-        throw new Error(result.message || 'Invalid operational credentials.');
+        throw new Error(result.message || 'Incorrect email or password.');
       }
 
-      setSuccessMessage('Authentication identity validated. Redirecting to terminal workspace...');
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1500);
-
+      setSuccessMessage('Logged in! Taking you to your dashboard…');
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
     } catch (err: any) {
-      setErrorMessage(err.message || 'A critical network or structural error occurred.');
+      setErrorMessage(err.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const inputBase = 'w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-orange-400 focus:bg-white transition-all';
+  const inputWithIcon = `${inputBase} pl-10`;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8 relative selection:bg-indigo-500 selection:text-white">
-      {/* Decorative ambient background blur grids */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-slate-950 to-slate-950" />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 via-white to-green-50 px-4 py-12">
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute top-0 right-0 h-64 w-64 rounded-full bg-orange-200 opacity-20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 rounded-full bg-green-200 opacity-20 blur-3xl" />
 
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-900 bg-slate-900/40 p-8 backdrop-blur-xl shadow-2xl shadow-indigo-500/5">
-        
-        {/* BRANDING HEADER */}
-        <div className="flex flex-col items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
-            <Zap className="h-6 w-6 text-white" />
+      <div className="relative w-full max-w-md">
+        {/* Card */}
+        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl shadow-gray-200">
+
+          {/* Logo */}
+          <div className="mb-7 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 shadow-lg shadow-orange-200">
+              <Zap className="h-6 w-6 text-white" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900">Welcome back</h1>
+            <p className="mt-1.5 text-sm text-gray-500">Log in to your VendPro account</p>
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-white">
-            Welcome back to Vendify
-          </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Securely access your utility distribution terminal
-          </p>
-        </div>
 
-        {/* NOTIFICATION FEEDBACK TOASTS */}
-        {errorMessage && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-            <ShieldAlert className="h-5 w-5 flex-shrink-0 text-red-400" />
-            <p>{errorMessage}</p>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400">
-            <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-400" />
-            <p>{successMessage}</p>
-          </div>
-        )}
-
-        {/* MAIN IDENTITY FORM */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          
-          {!requires2FA ? (
-            <>
-              {/* EMAIL CHANNEL INPUT */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Business Email Address
-                </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Mail className="h-4 w-4 text-slate-500" />
-                  </div>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    autoComplete="email"
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950/60 py-3 pl-10 pr-4 text-slate-200 placeholder-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
-                    placeholder="name@company.com"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-xs font-medium text-red-400 mt-1">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* SECURITY CREDENTIALS INPUT */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Account Security Key
-                  </label>
-                  <a href="/forgot-password" className="text-xs font-medium text-indigo-400 transition hover:text-indigo-300">
-                    Reset key?
-                  </a>
-                </div>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Lock className="h-4 w-4 text-slate-500" />
-                  </div>
-                  <input
-                    {...register('password')}
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950/60 py-3 pl-10 pr-10 text-slate-200 placeholder-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm transition-all"
-                    placeholder="••••••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-xs font-medium text-red-400 mt-1">{errors.password.message}</p>
-                )}
-              </div>
-            </>
-          ) : (
-            /* MULTI-FACTOR AUTHENTICATION INTERCEPT CHALLENGE */
-            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Multi-Factor OTP Challenge
-              </label>
-              <p className="text-xs text-slate-400 mb-2">
-                Please insert the token dispatched to your synchronized device profile.
-              </p>
-              <div className="relative rounded-xl shadow-sm">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Smartphone className="h-4 w-4 text-indigo-400" />
-                </div>
-                <input
-                  {...register('twoFactorCode')}
-                  type="text"
-                  maxLength={6}
-                  placeholder="000000"
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/60 py-3 pl-10 text-center text-lg font-mono tracking-widest text-white placeholder-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-              {errors.twoFactorCode && (
-                <p className="text-xs font-medium text-red-400 mt-1">{errors.twoFactorCode.message}</p>
-              )}
+          {/* Alerts */}
+          {errorMessage && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>{errorMessage}</p>
+            </div>
+          )}
+          {successMessage && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-green-100 bg-green-50 p-4 text-sm text-green-700">
+              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>{successMessage}</p>
             </div>
           )}
 
-          {/* SUBMIT BUTTON TRIGGER */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="flex w-full items-center justify-center rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {!requires2FA ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Evaluating Parameters...
-              </>
-            ) : requires2FA ? (
-              'Verify Dynamic Passcode'
-            ) : (
-              'Initialize Terminal Session'
-            )}
-          </button>
-        </form>
+                {/* Email */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Email address</label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                    <input
+                      {...register('email')}
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      className={inputWithIcon}
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+                </div>
 
-        {/* BOTTOM NAVIGATION FOOTER */}
-        <div className="text-center pt-4 border-t border-slate-900">
-          <p className="text-sm text-slate-500">
-            New infrastructure partner?{' '}
-            <a href="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-              Deploy Free Sandbox
-            </a>
-          </p>
+                {/* Password */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-sm font-semibold text-gray-700">Password</label>
+                    <a href="/forgot-password" className="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">
+                      Forgot password?
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className={`${inputWithIcon} pr-11`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+                </div>
+              </>
+            ) : (
+              /* 2FA step */
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="mb-4 rounded-xl bg-orange-50 border border-orange-100 p-4 text-sm text-orange-800">
+                  <p className="font-semibold">Check your authenticator app</p>
+                  <p className="mt-0.5 text-orange-600">Enter the 6-digit code to continue.</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Verification code</label>
+                  <div className="relative">
+                    <Smartphone className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-orange-400" />
+                    <input
+                      {...register('twoFactorCode')}
+                      type="text"
+                      maxLength={6}
+                      placeholder="000000"
+                      className={`${inputWithIcon} text-center text-xl font-mono tracking-widest`}
+                    />
+                  </div>
+                  {errors.twoFactorCode && <p className="mt-1 text-xs text-red-600">{errors.twoFactorCode.message}</p>}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-200 hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            >
+              {isLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Logging in…</>
+              ) : requires2FA ? (
+                'Verify code'
+              ) : (
+                'Log in'
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-6 border-t border-gray-100 pt-5 text-center">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{' '}
+              <a href="/register" className="font-bold text-orange-500 hover:text-orange-600 transition-colors">
+                Create one free
+              </a>
+            </p>
+          </div>
         </div>
 
+        {/* Below card */}
+        <p className="mt-4 text-center text-xs text-gray-400">
+          Your account is protected with end-to-end encryption and PIN verification.
+        </p>
       </div>
     </div>
   );
