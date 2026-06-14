@@ -64,6 +64,9 @@ export const PERMISSIONS = {
   SYSTEM_AUDIT: 'system:audit',
 
   ADMIN_IMPERSONATE: 'admin:impersonate',
+
+  MARKETING_WRITE: 'marketing:write',
+  MARKETING_READ: 'marketing:read',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
