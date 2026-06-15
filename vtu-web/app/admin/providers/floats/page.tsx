@@ -1131,7 +1131,6 @@ export default function FloatManagementPage() {
           }
         />
       )}
-
       {/* Toast */}
       {toastMsg && (
         <div
