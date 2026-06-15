@@ -2,9 +2,7 @@ import React from 'react'
 
 const Page = () => {
   return (
-    <div>
-      .bg-white.rounded-lg.shadow-md.p-5.
-    </div>
+    <div>Page</div>
   )
 }
 
