@@ -118,7 +118,7 @@ export class AdexProvider extends ProviderBase {
    */
   private async login(): Promise<AdexLoginResponse> {
     const credentials = Buffer.from(
-      `${this.config.apiKey}:${this.config.secretKey ?? ''}`
+      `${this.config.username}:${this.config.password ?? ''}`
     ).toString('base64');
 
     const url = `${this.baseUrl()}/user`;
@@ -129,7 +129,6 @@ export class AdexProvider extends ProviderBase {
         'Content-Type': 'application/json',
       },
     });
-    console.log(res)
 
     if (!res.ok) throw new Error(`Adex login failed: ${res.status}`);
     return (await res.json()) as AdexLoginResponse;
