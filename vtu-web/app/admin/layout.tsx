@@ -119,7 +119,7 @@ const ADMIN_NAV: NavSection[] = [
         label: 'Services',
         icon: Package,
         children: [
-          { href: '/admin/services/data-plans', label: 'Data Plans', icon: Globe },
+          { href: '/admin/services/airtime-data', label: 'Airtime & Data', icon: Globe },
           { href: '/admin/services/cable', label: 'Cable Bouquets', icon: Ticket },
           { href: '/admin/services/exam-pins', label: 'Exam Pins', icon: BookOpen },
           { href: '/admin/services/a2c', label: 'Airtime to Cash', icon: DollarSign },
