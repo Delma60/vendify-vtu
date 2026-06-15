@@ -1,4 +1,4 @@
-// app/(dashboard)/layout.tsx
+// vtu-web/app/admin/layout.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,43 +6,46 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Smartphone,
-  Wifi,
-  Tv,
-  Zap,
-  BookOpen,
-  MessageSquare,
-  Wallet,
-  ArrowLeftRight,
-  Gift,
   Users,
+  CreditCard,
+  BarChart2,
   Settings,
   Bell,
   LogOut,
   Menu,
   X,
   ChevronRight,
-  TrendingDown,
-  Globe,
-  CreditCard,
-  History,
   AlertTriangle,
   Loader2,
-  ShoppingBag,
-  Phone,
-  Building2,
-  Gauge,
+  Shield,
+  Zap,
   FileText,
-  BarChart2,
-  PieChart,
+  DollarSign,
+  Megaphone,
+  Wrench,
+  Globe,
+  Bug,
+  ShoppingBag,
+  Ticket,
+  Tags,
+  Radio,
+  BookOpen,
+  Key,
   Activity,
   UserCheck,
-  Shield,
+  Package,
+  AlertOctagon,
+  ScrollText,
+  PieChart,
+  TrendingUp,
+  Landmark,
+  SlidersHorizontal,
+  HardDrive,
 } from 'lucide-react';
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 
-const BRAND = {
+const B = {
   orange: '#F97316',
   orangeDark: '#EA580C',
   green: '#22C55E',
@@ -53,119 +56,137 @@ const BRAND = {
   surface: '#F9FAFB',
 };
 
-// ─── Nav structure (supports nested children) ─────────────────────────────────
+// ─── Nav structure ────────────────────────────────────────────────────────────
 
-type NavLeaf = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  badge?: string;
-};
-
-type NavGroup = {
-  label: string;
-  icon: React.ElementType;
-  children: NavLeaf[];
-};
-
+type NavLeaf = { href: string; label: string; icon: React.ElementType; badge?: string };
+type NavGroup = { label: string; icon: React.ElementType; children: NavLeaf[] };
 type NavItem = NavLeaf | NavGroup;
+type NavSection = { label: string; items: NavItem[] };
 
-type NavSection = {
-  label: string;
-  items: NavItem[];
-};
-
-function isNavGroup(item: NavItem): item is NavGroup {
+function isGroup(item: NavItem): item is NavGroup {
   return 'children' in item;
 }
 
-const NAV_SECTIONS: NavSection[] = [
+const ADMIN_NAV: NavSection[] = [
   {
     label: 'Overview',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/wallet', label: 'Wallet', icon: Wallet },
-      { href: '/transactions', label: 'History', icon: History },
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/admin/analytics', label: 'Analytics', icon: PieChart },
+      { href: '/admin/audit-log', label: 'Audit Log', icon: ScrollText },
     ],
   },
   {
-    label: 'Services',
+    label: 'Users',
     items: [
-      { href: '/airtime', label: 'Airtime', icon: Smartphone },
-      { href: '/data', label: 'Data', icon: Wifi },
-      { href: '/electricity', label: 'Electricity', icon: Zap },
-      { href: '/cable', label: 'Cable TV', icon: Tv },
-      { href: '/internet', label: 'Internet', icon: Globe },
       {
-        label: 'Education',
-        icon: BookOpen,
-        children: [
-          { href: '/exam-pin', label: 'Exam Pins', icon: FileText },
-          { href: '/waec', label: 'WAEC Results', icon: FileText },
-          { href: '/jamb', label: 'JAMB Portal', icon: FileText },
-        ],
-      },
-      { href: '/sms', label: 'Bulk SMS', icon: MessageSquare },
-    ],
-  },
-  {
-    label: 'Earnings',
-    items: [
-      { href: '/cashback', label: 'Cashback', icon: Gift },
-      { href: '/commissions', label: 'Commissions', icon: TrendingDown },
-      {
-        label: 'Referrals',
+        label: 'User Management',
         icon: Users,
         children: [
-          { href: '/referrals', label: 'My Referrals', icon: UserCheck },
-          { href: '/referrals/leaderboard', label: 'Leaderboard', icon: BarChart2 },
-          { href: '/referrals/payouts', label: 'Payouts', icon: Wallet },
+          { href: '/admin/users', label: 'All Users', icon: Users },
+          { href: '/admin/users/kyc', label: 'KYC Verification', icon: UserCheck },
+          { href: '/admin/users/roles', label: 'Roles & Permissions', icon: Shield },
+          { href: '/admin/users/impersonate', label: 'Impersonate User', icon: Activity },
+        ],
+      },
+      { href: '/admin/support', label: 'Support Tickets', icon: Megaphone },
+      { href: '/admin/disputes', label: 'Disputes', icon: AlertOctagon },
+    ],
+  },
+  {
+    label: 'Transactions',
+    items: [
+      { href: '/admin/transactions', label: 'All Transactions', icon: CreditCard },
+      { href: '/admin/transactions/refunds', label: 'Refunds', icon: DollarSign },
+      { href: '/admin/fraud', label: 'Fraud Flags', icon: Bug },
+      { href: '/admin/dlq', label: 'Dead Letter Queue', icon: HardDrive },
+    ],
+  },
+  {
+    label: 'Services & Providers',
+    items: [
+      {
+        label: 'Providers',
+        icon: Radio,
+        children: [
+          { href: '/admin/providers', label: 'Provider Config', icon: SlidersHorizontal },
+          { href: '/admin/providers/floats', label: 'Float Management', icon: Landmark },
+          { href: '/admin/providers/prices', label: 'Price Sync', icon: TrendingUp },
+        ],
+      },
+      {
+        label: 'Services',
+        icon: Package,
+        children: [
+          { href: '/admin/services/data-plans', label: 'Data Plans', icon: Globe },
+          { href: '/admin/services/cable', label: 'Cable Bouquets', icon: Ticket },
+          { href: '/admin/services/exam-pins', label: 'Exam Pins', icon: BookOpen },
+          { href: '/admin/services/a2c', label: 'Airtime to Cash', icon: DollarSign },
         ],
       },
     ],
   },
   {
-    label: 'Account',
+    label: 'Finance',
     items: [
-      { href: '/subscription', label: 'Subscription', icon: CreditCard },
-      {
-        label: 'Settings',
-        icon: Settings,
-        children: [
-          { href: '/profile', label: 'Profile', icon: UserCheck },
-          { href: '/security', label: 'Security', icon: Shield },
-          { href: '/notifications', label: 'Notifications', icon: Bell },
-        ],
-      },
+      { href: '/admin/wallets', label: 'Wallets', icon: Landmark },
+      { href: '/admin/withdrawals', label: 'Withdrawals', icon: FileText },
+      { href: '/admin/commissions', label: 'Commissions', icon: BarChart2 },
+      { href: '/admin/loans', label: 'Loans', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { href: '/admin/subscriptions', label: 'Subscription Plans', icon: ShoppingBag },
+      { href: '/admin/cashback', label: 'Cashback Campaigns', icon: Tags },
+      { href: '/admin/coupons', label: 'Coupons', icon: Ticket },
+      { href: '/admin/events', label: 'Events', icon: Megaphone },
+    ],
+  },
+  {
+    label: 'API',
+    items: [
+      { href: '/admin/api-keys', label: 'API Keys', icon: Key },
+      { href: '/admin/api-logs', label: 'API Logs', icon: ScrollText },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+      { href: '/admin/maintenance', label: 'Maintenance', icon: Wrench },
+      { href: '/admin/ip-blacklist', label: 'IP Blacklist', icon: Shield },
+      { href: '/admin/geo', label: 'Geo Blocking', icon: Globe },
     ],
   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isActive(href: string, pathname: string): boolean {
-  if (href === '/dashboard') return pathname === '/dashboard';
+  if (href === '/admin') return pathname === '/admin';
   return pathname.startsWith(href);
 }
 
-function isSectionActive(group: NavGroup, pathname: string): boolean {
-  return group.children.some((child) => isActive(child.href, pathname));
+function groupHasActive(group: NavGroup, pathname: string): boolean {
+  return group.children.some((c) => isActive(c.href, pathname));
 }
 
-// ─── NavLeafItem ──────────────────────────────────────────────────────────────
+// ─── NavLeafItem ─────────────────────────────────────────────────────────────
 
 function NavLeafItem({
   item,
   pathname,
   collapsed,
-  onNavigate,
   nested = false,
+  onNavigate,
 }: {
   item: NavLeaf;
   pathname: string;
   collapsed: boolean;
-  onNavigate?: () => void;
   nested?: boolean;
+  onNavigate?: () => void;
 }) {
   const active = isActive(item.href, pathname);
   const Icon = item.icon;
@@ -174,16 +195,12 @@ function NavLeafItem({
     <Link
       href={item.href}
       onClick={onNavigate}
-      className={`
-        group relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-medium
-        transition-all duration-150
-        ${nested && !collapsed ? 'pl-9 pr-3' : 'px-3'}
-        ${active
-          ? 'text-white shadow-md'
-          : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900'
-        }
-        ${collapsed ? 'justify-center !px-2' : ''}
-      `}
+      className={[
+        'group relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150',
+        nested && !collapsed ? 'pl-9 pr-3 py-2' : 'px-3 py-2.5',
+        collapsed ? '!justify-center !px-2' : '',
+        active ? 'text-white shadow-md' : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900',
+      ].join(' ')}
       style={
         active
           ? {
@@ -193,29 +210,30 @@ function NavLeafItem({
           : undefined
       }
     >
-      {/* Nested connector dot */}
+      {/* Connector dot for nested */}
       {nested && !collapsed && (
         <span
           className="absolute left-[22px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
-          style={{ background: active ? 'rgba(255,255,255,0.7)' : BRAND.border }}
+          style={{ background: active ? 'rgba(255,255,255,0.7)' : B.border }}
         />
       )}
 
       <Icon
+        size={nested ? 14 : 17}
+        strokeWidth={1.9}
         className="shrink-0"
-        size={nested ? 15 : 18}
-        strokeWidth={1.8}
-        style={{ color: active ? '#fff' : '#9CA3AF' }}
+        style={{ color: active ? '#fff' : B.textFaint }}
       />
 
-      {!collapsed && (
-        <span className="flex-1 truncate">{item.label}</span>
-      )}
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
 
       {!collapsed && item.badge && (
         <span
           className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-          style={{ background: active ? 'rgba(255,255,255,0.25)' : 'rgba(249,115,22,0.12)', color: active ? '#fff' : BRAND.orange }}
+          style={{
+            background: active ? 'rgba(255,255,255,0.25)' : 'rgba(249,115,22,0.12)',
+            color: active ? '#fff' : B.orange,
+          }}
         >
           {item.badge}
         </span>
@@ -227,18 +245,18 @@ function NavLeafItem({
 
       {/* Tooltip when collapsed */}
       {collapsed && (
-        <div
+        <span
           className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-          style={{ background: '#fff', borderColor: BRAND.border, color: BRAND.text }}
+          style={{ background: '#fff', borderColor: B.border, color: B.text }}
         >
           {item.label}
-        </div>
+        </span>
       )}
     </Link>
   );
 }
 
-// ─── NavGroupItem (collapsible parent) ────────────────────────────────────────
+// ─── NavGroupItem ─────────────────────────────────────────────────────────────
 
 function NavGroupItem({
   item,
@@ -251,44 +269,44 @@ function NavGroupItem({
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
-  const sectionActive = isSectionActive(item, pathname);
-  const [open, setOpen] = useState(sectionActive);
+  const active = groupHasActive(item, pathname);
+  const [open, setOpen] = useState(active);
   const Icon = item.icon;
 
-  // Auto-open if a child becomes active
   useEffect(() => {
-    if (sectionActive) setOpen(true);
-  }, [sectionActive]);
+    if (active) setOpen(true);
+  }, [active]);
 
   if (collapsed) {
-    // In collapsed mode render a tooltip group button (no expand)
     return (
       <div className="group relative">
         <button
-          className={`
-            flex w-full items-center justify-center rounded-xl px-2 py-2.5
-            transition-all duration-150
-            ${sectionActive ? 'text-white shadow-md' : 'text-gray-400 hover:bg-orange-50 hover:text-gray-900'}
-          `}
+          className={[
+            'flex w-full items-center justify-center rounded-xl px-2 py-2.5 transition-all duration-150',
+            active ? 'text-white shadow-md' : 'text-gray-400 hover:bg-orange-50',
+          ].join(' ')}
           style={
-            sectionActive
-              ? { background: 'linear-gradient(135deg, #F97316, #EA580C)', boxShadow: '0 4px 14px rgba(249,115,22,0.22)' }
+            active
+              ? {
+                  background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                  boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+                }
               : undefined
           }
         >
-          <Icon size={18} strokeWidth={1.8} style={{ color: sectionActive ? '#fff' : '#9CA3AF' }} />
+          <Icon size={17} strokeWidth={1.9} style={{ color: active ? '#fff' : B.textFaint }} />
         </button>
 
-        {/* Flyout tooltip with children */}
+        {/* Flyout tooltip */}
         <div
-          className="pointer-events-none absolute left-full top-0 z-50 ml-3 min-w-[160px] rounded-xl border bg-white p-2 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
-          style={{ borderColor: BRAND.border }}
+          className="pointer-events-none absolute left-full top-0 z-50 ml-3 min-w-[172px] rounded-xl border bg-white p-2 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+          style={{ borderColor: B.border }}
         >
-          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: BRAND.textFaint }}>
+          <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: B.textFaint }}>
             {item.label}
           </p>
-          {item.children.map((child) => (
-            <NavLeafItem key={child.href} item={child} pathname={pathname} collapsed={false} onNavigate={onNavigate} />
+          {item.children.map((c) => (
+            <NavLeafItem key={c.href} item={c} pathname={pathname} collapsed={false} onNavigate={onNavigate} />
           ))}
         </div>
       </div>
@@ -297,31 +315,25 @@ function NavGroupItem({
 
   return (
     <div>
-      {/* Parent button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`
-          group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium
-          transition-all duration-150
-          ${sectionActive
-            ? 'bg-orange-50 text-gray-900'
-            : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900'
-          }
-        `}
+        className={[
+          'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+          active ? 'bg-orange-50 text-gray-900' : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900',
+        ].join(' ')}
       >
         <Icon
-          size={18}
-          strokeWidth={1.8}
+          size={17}
+          strokeWidth={1.9}
           className="shrink-0"
-          style={{ color: sectionActive ? BRAND.orange : '#9CA3AF' }}
+          style={{ color: active ? B.orange : B.textFaint }}
         />
         <span className="flex-1 truncate text-left">{item.label}</span>
-
         <ChevronRight
-          size={14}
+          size={13}
           className="shrink-0 transition-transform duration-200"
           style={{
-            color: sectionActive ? BRAND.orange : BRAND.textFaint,
+            color: active ? B.orange : B.textFaint,
             transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
           }}
         />
@@ -330,23 +342,19 @@ function NavGroupItem({
       {/* Children */}
       <div
         className="overflow-hidden transition-all duration-200"
-        style={{ maxHeight: open ? `${item.children.length * 48}px` : '0px', opacity: open ? 1 : 0 }}
+        style={{
+          maxHeight: open ? `${item.children.length * 44}px` : '0px',
+          opacity: open ? 1 : 0,
+        }}
       >
         <div className="relative mt-0.5 space-y-0.5 pb-1">
-          {/* Vertical connector line */}
+          {/* Connector line */}
           <div
             className="absolute bottom-2 left-[22px] top-0 w-px"
-            style={{ background: BRAND.border }}
+            style={{ background: B.border }}
           />
-          {item.children.map((child) => (
-            <NavLeafItem
-              key={child.href}
-              item={child}
-              pathname={pathname}
-              collapsed={false}
-              onNavigate={onNavigate}
-              nested
-            />
+          {item.children.map((c) => (
+            <NavLeafItem key={c.href} item={c} pathname={pathname} collapsed={false} nested onNavigate={onNavigate} />
           ))}
         </div>
       </div>
@@ -356,7 +364,7 @@ function NavGroupItem({
 
 // ─── Logout modal ─────────────────────────────────────────────────────────────
 
-function LogoutConfirmModal({
+function LogoutModal({
   onCancel,
   onConfirm,
   loading,
@@ -368,11 +376,9 @@ function LogoutConfirmModal({
   error: string | null;
 }) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) onCancel();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onCancel(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
   }, [onCancel, loading]);
 
   return (
@@ -380,12 +386,11 @@ function LogoutConfirmModal({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="logout-modal-title"
       onClick={() => !loading && onCancel()}
     >
       <div
         className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
-        style={{ border: `1px solid ${BRAND.border}` }}
+        style={{ border: `1px solid ${B.border}` }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -393,46 +398,39 @@ function LogoutConfirmModal({
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
             style={{ background: 'rgba(249,115,22,0.12)' }}
           >
-            <AlertTriangle className="h-5 w-5" style={{ color: BRAND.orange }} />
+            <AlertTriangle className="h-5 w-5" style={{ color: B.orange }} />
           </div>
-          <div className="min-w-0">
-            <h2 id="logout-modal-title" className="text-base font-bold" style={{ color: BRAND.text }}>
-              Log out of VendPro?
-            </h2>
-            <p className="mt-1 text-sm" style={{ color: BRAND.textMuted }}>
-              You'll need to log in again to access your wallet and services.
+          <div>
+            <h2 className="text-base font-bold" style={{ color: B.text }}>Sign out of admin?</h2>
+            <p className="mt-1 text-sm" style={{ color: B.textMuted }}>
+              You'll need to log in again to access the admin panel.
             </p>
           </div>
         </div>
 
         {error && (
-          <div
-            className="mt-4 rounded-xl px-4 py-3 text-sm"
-            style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}
-          >
+          <div className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
             {error}
           </div>
         )}
 
         <div className="mt-6 flex gap-3">
           <button
-            type="button"
             onClick={onCancel}
             disabled={loading}
             className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-            style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.text }}
+            style={{ border: `1.5px solid ${B.border}`, color: B.text }}
           >
             Cancel
           </button>
           <button
-            type="button"
             onClick={onConfirm}
             disabled={loading}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg, #F97316, #EA580C)' }}
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Logging out…' : 'Log out'}
+            {loading ? 'Signing out…' : 'Sign out'}
           </button>
         </div>
       </div>
@@ -440,18 +438,18 @@ function LogoutConfirmModal({
   );
 }
 
-// ─── Sidebar (shared between desktop + mobile) ────────────────────────────────
+// ─── Sidebar content ──────────────────────────────────────────────────────────
 
-function Sidebar({
+function SidebarContent({
   collapsed,
   onCollapse,
   onNavigate,
-  onLogoutClick,
+  onLogout,
 }: {
   collapsed: boolean;
   onCollapse: () => void;
   onNavigate?: () => void;
-  onLogoutClick: () => void;
+  onLogout: () => void;
 }) {
   const pathname = usePathname();
 
@@ -460,44 +458,37 @@ function Sidebar({
       {/* Logo */}
       <div
         className={`flex items-center border-b py-5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}
-        style={{ borderColor: BRAND.border }}
+        style={{ borderColor: B.border }}
       >
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-lg"
-          style={{
-            background: 'linear-gradient(135deg, #F97316, #22C55E)',
-            boxShadow: '0 4px 14px rgba(249,115,22,0.25)',
-          }}
+          style={{ background: 'linear-gradient(135deg, #F97316, #22C55E)', boxShadow: '0 4px 14px rgba(249,115,22,0.25)' }}
         >
           <Zap size={18} className="text-white" strokeWidth={2.5} />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold tracking-tight" style={{ color: BRAND.text }}>
-              VendPro
-            </p>
-            <p className="truncate text-xs" style={{ color: BRAND.textFaint }}>
-              Top up in seconds
-            </p>
+            <p className="truncate text-sm font-bold tracking-tight" style={{ color: B.text }}>VendPro</p>
+            <p className="truncate text-[11px] font-medium" style={{ color: B.orange }}>Admin Panel</p>
           </div>
         )}
       </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 scrollbar-none">
-        {NAV_SECTIONS.map((section) => (
+        {ADMIN_NAV.map((section) => (
           <div key={section.label} className="mb-5">
             {!collapsed && (
               <p
-                className="mb-1.5 px-4 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: BRAND.textFaint }}
+                className="mb-1.5 px-4 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: B.textFaint }}
               >
                 {section.label}
               </p>
             )}
             <div className={`space-y-0.5 ${collapsed ? 'px-2' : 'px-3'}`}>
               {section.items.map((item) =>
-                isNavGroup(item) ? (
+                isGroup(item) ? (
                   <NavGroupItem
                     key={item.label}
                     item={item}
@@ -520,47 +511,45 @@ function Sidebar({
         ))}
       </nav>
 
-      {/* Bottom actions */}
-      <div className={`border-t py-4 ${collapsed ? 'px-2' : 'px-3'}`} style={{ borderColor: BRAND.border }}>
+      {/* Bottom */}
+      <div className={`border-t py-3 ${collapsed ? 'px-2' : 'px-3'}`} style={{ borderColor: B.border }}>
         <div className="space-y-0.5">
           <button
-            className={`
-              group flex w-full items-center gap-3 rounded-xl px-3 py-2.5
-              text-sm font-medium transition hover:bg-gray-50
-              ${collapsed ? 'justify-center !px-2' : ''}
-            `}
-            style={{ color: BRAND.textMuted }}
+            className={[
+              'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-gray-50',
+              collapsed ? 'justify-center !px-2' : '',
+            ].join(' ')}
+            style={{ color: B.textMuted }}
           >
-            <Bell size={18} strokeWidth={1.8} className="shrink-0" style={{ color: BRAND.textFaint }} />
+            <Bell size={17} strokeWidth={1.9} className="shrink-0" style={{ color: B.textFaint }} />
             {!collapsed && <span>Notifications</span>}
             {collapsed && (
-              <div
+              <span
                 className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-                style={{ background: '#fff', borderColor: BRAND.border, color: BRAND.text }}
+                style={{ background: '#fff', borderColor: B.border, color: B.text }}
               >
                 Notifications
-              </div>
+              </span>
             )}
           </button>
 
           <button
-            onClick={onLogoutClick}
-            className={`
-              group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5
-              text-sm font-semibold transition-colors hover:bg-red-50
-              ${collapsed ? 'justify-center !px-2' : ''}
-            `}
+            onClick={onLogout}
+            className={[
+              'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-red-50',
+              collapsed ? 'justify-center !px-2' : '',
+            ].join(' ')}
             style={{ color: '#DC2626' }}
           >
-            <LogOut size={18} strokeWidth={1.8} className="shrink-0" style={{ color: '#DC2626' }} />
+            <LogOut size={17} strokeWidth={1.9} className="shrink-0" style={{ color: '#DC2626' }} />
             {!collapsed && <span>Sign out</span>}
             {collapsed && (
-              <div
+              <span
                 className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-                style={{ background: '#fff', borderColor: BRAND.border, color: '#DC2626' }}
+                style={{ background: '#fff', borderColor: B.border, color: '#DC2626' }}
               >
                 Sign out
-              </div>
+              </span>
             )}
           </button>
         </div>
@@ -569,8 +558,8 @@ function Sidebar({
       {/* Collapse toggle — desktop only */}
       <button
         onClick={onCollapse}
-        className="hidden border-t py-3 text-center text-xs transition hover:bg-gray-50 hover:text-gray-700 lg:block"
-        style={{ borderColor: BRAND.border, color: BRAND.textFaint }}
+        className="hidden border-t py-3 text-center text-xs transition hover:bg-gray-50 lg:block"
+        style={{ borderColor: B.border, color: B.textFaint }}
       >
         {collapsed ? '→' : '← Collapse'}
       </button>
@@ -578,16 +567,16 @@ function Sidebar({
   );
 }
 
-// ─── Mobile drawer ─────────────────────────────────────────────────────────────
+// ─── Mobile drawer ────────────────────────────────────────────────────────────
 
-function MobileSidebar({
+function MobileDrawer({
   open,
   onClose,
-  onLogoutClick,
+  onLogout,
 }: {
   open: boolean;
   onClose: () => void;
-  onLogoutClick: () => void;
+  onLogout: () => void;
 }) {
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -597,26 +586,20 @@ function MobileSidebar({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${
-          open ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onClose}
       />
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl
-          transition-transform duration-300 ease-in-out lg:hidden
-          ${open ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <button
           onClick={onClose}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
-          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.textMuted }}
+          style={{ border: `1px solid ${B.border}`, color: B.textMuted }}
         >
           <X size={16} />
         </button>
-        <Sidebar collapsed={false} onCollapse={() => {}} onNavigate={onClose} onLogoutClick={onLogoutClick} />
+        <SidebarContent collapsed={false} onCollapse={() => {}} onNavigate={onClose} onLogout={onLogout} />
       </aside>
     </>
   );
@@ -624,9 +607,8 @@ function MobileSidebar({
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 
-function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+function Topbar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
-
   const segments = pathname.split('/').filter(Boolean);
   const pageTitle =
     segments.length > 1
@@ -636,57 +618,59 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <header
       className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white/80 px-4 backdrop-blur-md sm:px-6"
-      style={{ borderColor: BRAND.border }}
+      style={{ borderColor: B.border }}
     >
       <button
-        onClick={onMenuClick}
+        onClick={onMenu}
         className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:bg-gray-50 lg:hidden"
-        style={{ border: `1px solid ${BRAND.border}`, color: BRAND.textMuted }}
+        style={{ border: `1px solid ${B.border}`, color: B.textMuted }}
       >
         <Menu size={18} />
       </button>
 
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold" style={{ color: BRAND.text }}>
+        <h1 className="truncate text-base font-semibold" style={{ color: B.text }}>
           {pageTitle}
         </h1>
-        <p className="truncate text-xs" style={{ color: BRAND.textFaint }}>
+        <p className="truncate text-xs" style={{ color: B.textFaint }}>
           {new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-xl transition hover:bg-gray-50"
-          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.textMuted }}
-        >
-          <Bell size={17} />
-          <span
-            className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full"
-            style={{ background: BRAND.orange }}
-          />
-        </button>
+      {/* Admin badge */}
+      <span
+        className="hidden rounded-lg px-2.5 py-1 text-xs font-bold sm:block"
+        style={{ background: 'rgba(249,115,22,0.1)', color: B.orange }}
+      >
+        Admin
+      </span>
 
-        <button
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition hover:opacity-80"
-          style={{ background: 'rgba(249,115,22,0.12)', color: BRAND.orange }}
-        >
-          U
-        </button>
-      </div>
+      <button
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl transition hover:bg-gray-50"
+        style={{ border: `1px solid ${B.border}`, color: B.textMuted }}
+      >
+        <Bell size={17} />
+        <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full" style={{ background: B.orange }} />
+      </button>
+
+      <button
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition hover:opacity-80"
+        style={{ background: 'rgba(249,115,22,0.12)', color: B.orange }}
+      >
+        A
+      </button>
     </header>
   );
 }
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
-
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -695,60 +679,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? 'Failed to log out. Please try again.');
-      setShowLogoutModal(false);
+      if (!res.ok) throw new Error(data?.error ?? 'Failed to sign out.');
+      setShowLogout(false);
       router.push('/login');
       router.refresh();
     } catch (e: any) {
-      setLogoutError(e.message ?? 'Something went wrong. Please try again.');
+      setLogoutError(e.message ?? 'Something went wrong.');
     } finally {
       setLoggingOut(false);
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white" style={{ color: BRAND.text }}>
+    <div className="flex h-screen overflow-hidden bg-white" style={{ color: B.text }}>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden flex-col border-r transition-all duration-300 ease-in-out lg:flex ${
-          collapsed ? 'w-[68px]' : 'w-64'
-        }`}
-        style={{ minHeight: '100vh', borderColor: BRAND.border }}
+        className={`hidden flex-col border-r transition-all duration-300 ease-in-out lg:flex ${collapsed ? 'w-[68px]' : 'w-64'}`}
+        style={{ minHeight: '100vh', borderColor: B.border }}
       >
-        <Sidebar
+        <SidebarContent
           collapsed={collapsed}
           onCollapse={() => setCollapsed((c) => !c)}
-          onLogoutClick={() => setShowLogoutModal(true)}
+          onLogout={() => setShowLogout(true)}
         />
       </aside>
 
       {/* Mobile drawer */}
-      <MobileSidebar
+      <MobileDrawer
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        onLogoutClick={() => {
-          setMobileOpen(false);
-          setShowLogoutModal(true);
-        }}
+        onLogout={() => { setMobileOpen(false); setShowLogout(true); }}
       />
 
-      {/* Main content */}
+      {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setMobileOpen(true)} />
+        <Topbar onMenu={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto bg-white">
           <div className="min-h-full p-4 sm:p-6">{children}</div>
         </main>
       </div>
 
       {/* Logout modal */}
-      {showLogoutModal && (
-        <LogoutConfirmModal
-          onCancel={() => {
-            if (!loggingOut) {
-              setShowLogoutModal(false);
-              setLogoutError(null);
-            }
-          }}
+      {showLogout && (
+        <LogoutModal
+          onCancel={() => { if (!loggingOut) { setShowLogout(false); setLogoutError(null); } }}
           onConfirm={handleLogout}
           loading={loggingOut}
           error={logoutError}
