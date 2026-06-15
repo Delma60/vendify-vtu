@@ -1,131 +1,137 @@
+// vtu-web/middleware.ts
+// Edge-compatible middleware. JWT reads ONLY — no Firestore, no Admin SDK.
+// Fine-grained permission checks happen inside route handlers via requirePermission().
+
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth/session';
 
-// ─── Route matchers ───────────────────────────────────────────────────────────
+// ─── Role tiers ───────────────────────────────────────────────────────────────
+// Roles that may access admin UI / internal API routes at all.
+// Actual permission gates are still enforced server-side per route.
+const ADMIN_ROLE_IDS = new Set([
+  'super_admin',
+  'admin',
+  'support_agent',
+  'finance_officer',
+  'marketing_manager',
+]);
 
-/** Routes that require authentication */
-const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/api/internal'];
+// ─── Route classification ─────────────────────────────────────────────────────
 
-/** Routes that must NOT be accessible when logged in */
-const AUTH_ONLY_PREFIXES = ['/login', '/register'];
+// Require valid session
+const PROTECTED = ['/dashboard', '/api/v1/'];
 
-/** Public API routes — skip auth but still rate-limit */
-const PUBLIC_API_PREFIXES = [
+// Require valid session AND an admin-tier roleId
+const ADMIN_ONLY = ['/admin', '/api/internal/'];
+
+// Redirect to /dashboard if already authenticated
+const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
+
+// Always pass through (no session check)
+const PUBLIC_PASS = [
   '/api/auth/',
-  '/api/v1/',
   '/api/webhooks/',
   '/api/health',
+  '/api/v1/plans',   // public plan listing
+  '/maintenance',
+  '/_next',
+  '/favicon',
 ];
 
-function isProtected(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-}
-
-function isAuthRoute(pathname: string): boolean {
-  return AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p));
-}
-
-function isPublicApi(pathname: string): boolean {
-  return PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p));
+function classify(pathname: string): 'public' | 'auth-page' | 'protected' | 'admin' {
+  if (PUBLIC_PASS.some((p) => pathname.startsWith(p))) return 'public';
+  // static files (.js, .css, .png …)
+  if (/\.\w+$/.test(pathname)) return 'public';
+  if (AUTH_PAGES.some((p) => pathname.startsWith(p))) return 'auth-page';
+  if (ADMIN_ONLY.some((p) => pathname.startsWith(p))) return 'admin';
+  if (PROTECTED.some((p) => pathname.startsWith(p))) return 'protected';
+  return 'public';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getIp(request: NextRequest): string {
+function clientIp(req: NextRequest): string {
   return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
     '127.0.0.1'
   );
 }
 
-function getSessionToken(request: NextRequest): string | undefined {
-  return request.cookies.get('vtu_session')?.value;
+function jsonForbidden(message: string, status: 401 | 403 | 503) {
+  return NextResponse.json({ success: false, error: message }, { status });
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const ip = clientIp(request);
+  const type = classify(pathname);
 
-  // ── Static assets & Next internals — skip ────────────────────────────────────
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next();
-  }
-
-  const ip = getIp(request);
-
-  // ── 1. Maintenance mode (edge KV or env flag) ──────────────────────────────
-  // Full maintenance check is in the server (reads Firestore via Admin SDK).
-  // At the edge we only check a pre-computed flag stored in the response header
-  // set by the warm-up cron. In practice wire this to Upstash or an edge KV.
+  // ── Maintenance mode (env flag only — Firestore read happens server-side) ──
   const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
-  const bypassIps = (process.env.MAINTENANCE_BYPASS_IPS ?? '').split(',').map((s) => s.trim());
+  const bypassIps = (process.env.MAINTENANCE_BYPASS_IPS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   if (maintenanceMode && !bypassIps.includes(ip)) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { success: false, error: 'Service temporarily unavailable' },
-        { status: 503 }
-      );
+      return jsonForbidden('Service temporarily unavailable', 503);
     }
     return NextResponse.rewrite(new URL('/maintenance', request.url));
   }
 
-  // ── 2. Session resolution ──────────────────────────────────────────────────
-  const token = getSessionToken(request);
+  // ── Public routes — pass straight through ─────────────────────────────────
+  if (type === 'public') return NextResponse.next();
+
+  // ── Resolve session from cookie (JWT only, no Firestore) ──────────────────
+  const token = request.cookies.get('vtu_session')?.value;
   const session = token ? await verifySessionToken(token) : null;
 
-  // ── 3. Auth route redirect (already logged in) ─────────────────────────────
-  if (session && isAuthRoute(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // ── Auth pages — redirect logged-in users ─────────────────────────────────
+  if (type === 'auth-page') {
+    if (session) {
+      const dest = ADMIN_ROLE_IDS.has(session.roleId) ? '/admin' : '/dashboard';
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+    return NextResponse.next();
   }
 
-  // ── 4. Protected route guard ───────────────────────────────────────────────
-  if (isProtected(pathname)) {
-    if (!session) {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-      }
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Admin route: require non-customer role (fine-grained permission check happens in route handler)
-    if (pathname.startsWith('/admin') || pathname.startsWith('/api/internal')) {
-      if (session.roleId === 'customer') {
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-        }
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
-    }
-
-    // Forward uid + roleId to the route via request headers
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-uid', session.uid);
-    requestHeaders.set('x-role-id', session.roleId);
-    requestHeaders.set('x-session-id', session.sessionId);
-
-    return NextResponse.next({ request: { headers: requestHeaders } });
+  // ── Unauthenticated — reject or redirect ──────────────────────────────────
+  if (!session) {
+    if (pathname.startsWith('/api/')) return jsonForbidden('Unauthorized', 401);
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // ── Admin-only guard (coarse — fine permissions checked in handlers) ───────
+  if (type === 'admin') {
+    if (!ADMIN_ROLE_IDS.has(session.roleId)) {
+      if (pathname.startsWith('/api/')) return jsonForbidden('Forbidden', 403);
+      // Regular customers see their dashboard, not an error page
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // ── Forward identity to route handlers via headers ────────────────────────
+  const headers = new Headers(request.headers);
+  headers.set('x-uid', session.uid);
+  headers.set('x-role-id', session.roleId);
+  headers.set('x-session-id', session.sessionId);
+  headers.set('x-client-ip', ip);
+
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimisation files)
-     * - favicon.ico (favicon file)
+     * Match everything except Next.js internals and static files already
+     * served by the CDN. Using a negative lookahead keeps this list short.
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)',
   ],
 };
