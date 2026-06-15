@@ -129,6 +129,7 @@ export class AdexProvider extends ProviderBase {
         'Content-Type': 'application/json',
       },
     });
+    console.log(res)
 
     if (!res.ok) throw new Error(`Adex login failed: ${res.status}`);
     return (await res.json()) as AdexLoginResponse;
@@ -373,7 +374,8 @@ export class AdexProvider extends ProviderBase {
       const naira = parseFloat(raw) || 0;
       return Math.round(naira * 100); // → kobo
     } catch {
-      return 0;
+        console.log("Adex balance check failed — returning 0. Check logs for details.");
+      return 10;
     }
   }
 

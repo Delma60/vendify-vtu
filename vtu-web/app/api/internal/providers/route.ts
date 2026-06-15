@@ -230,9 +230,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Guard: code must be unique in Firestore
-  const existing = await adminDb.collection('providers').where('code', '==', d.code).limit(1).get();
+  // Guard: webhook identifier must be unique in Firestore
+  const existing = await adminDb.collection('providers').where('identifier', '==', d.identifier).limit(1).get();
   if (!existing.empty) {
-    return err(`A provider with code '${d.code}' already exists.`, 409);
+    return err(`A provider with the webhook identifier '${d.identifier}' already exists. Please choose a unique identifier.`, 409);
   }
 
   const ref = adminDb.collection('providers').doc();

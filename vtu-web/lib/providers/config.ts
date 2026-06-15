@@ -40,6 +40,18 @@ export async function getProviderConfigByIdentifier(identifier: string): Promise
   return all.find(p => p.identifier === identifier) ?? null;
 }
 
+// Fetch by the unique document ID
+export async function getProviderById(id: string): Promise<ProviderConfig | null> {
+  const all = await loadAllProviders();
+  return all.find(p => p.id === id) ?? null;
+}
+
+// Fetch by the webhook identifier (crucial for multiple instances of Adex)
+export async function getProviderByIdentifier(identifier: string): Promise<ProviderConfig | null> {
+  const all = await loadAllProviders();
+  return all.find(p => p.identifier === identifier && p.isActive) ?? null;
+}
+
 /**
  * Active providers that support a given service, sorted by priority
  * (lower number = tried first). Providers without a priority for this

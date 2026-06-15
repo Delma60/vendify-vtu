@@ -112,7 +112,7 @@ export async function buyData(params: Omit<DataParams, 'providerPlanCode'> & { d
   const attempts: Array<{ provider: string; error: string }> = [];
 
   for (const config of candidates) {
-    const providerPlanCode = plan.providerPlanCodes?.[config.code];
+    const providerPlanCode = plan.providerPlanCodes?.[config.id] ?? plan.providerPlanCodes?.[config.code];
     if (!providerPlanCode) {
       // This provider doesn't carry this plan — skip, don't count as a failed attempt
       continue;
@@ -174,7 +174,7 @@ export async function payCable(
   const candidates = await listActiveProvidersForService('cable');
 
   for (const config of candidates) {
-    const providerBouquetCode = plan.providerPlanCodes?.[config.code];
+    const providerBouquetCode = plan.providerPlanCodes?.[config.id] ?? plan.providerPlanCodes?.[config.code];
     if (!providerBouquetCode) continue;
 
     try {

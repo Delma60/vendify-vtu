@@ -77,6 +77,7 @@ export class ProviderFactory {
   static make(config: ProviderConfig): VTUProviderInterface {
     const useSandbox = process.env.USE_SANDBOX === 'true';
     const key = useSandbox ? 'sandbox' : config.code;
+    console.log(`ProviderFactory: making provider for code "${key}" (sandbox=${useSandbox})`);
 
     const entry = REGISTRY[key];
     if (!entry) {
