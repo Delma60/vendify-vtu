@@ -102,7 +102,7 @@ function statusChip(user: UserRecord) {
   return { label: 'Active', bg: '#ECFDF5', color: '#059669', icon: <CheckCircle size={11} /> };
 }
 
-// ─── Action menu ──────────────────────────────────────────────────────────────
+// ─── Action menu (uses position:fixed to escape overflow clipping) ─────────────
 function ActionMenu({
   user,
   onAction,
@@ -111,15 +111,40 @@ function ActionMenu({
   onAction: (action: string, user: UserRecord) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Reposition on open
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
     const fn = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
     };
+    const onScroll = () => setOpen(false);
     document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', fn);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   }, [open]);
 
   const items = [
@@ -136,9 +161,10 @@ function ActionMenu({
   ];
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
         style={{ color: B.muted }}
       >
@@ -147,8 +173,13 @@ function ActionMenu({
 
       {open && (
         <div
-          className="absolute right-0 z-50 mt-1 w-48 rounded-xl border bg-white py-1 shadow-xl"
-          style={{ borderColor: B.border }}
+          ref={menuRef}
+          className="fixed z-[9999] w-48 rounded-xl border bg-white py-1 shadow-xl"
+          style={{
+            top: menuPos.top,
+            right: menuPos.right,
+            borderColor: B.border,
+          }}
         >
           {items.map((item, i) =>
             item === null ? (
@@ -167,7 +198,7 @@ function ActionMenu({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -188,7 +219,7 @@ function StatsStrip({ users }: { users: UserRecord[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {stats.map((s) => (
         <div
           key={s.label}
@@ -241,7 +272,7 @@ function ConfirmModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
@@ -319,7 +350,7 @@ function RoleModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
@@ -379,6 +410,83 @@ function RoleModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Mobile user card ─────────────────────────────────────────────────────────
+function UserCard({
+  user,
+  onAction,
+}: {
+  user: UserRecord;
+  onAction: (action: string, user: UserRecord) => void;
+}) {
+  const chip = statusChip(user);
+  return (
+    <div
+      className="rounded-2xl border bg-white p-4"
+      style={{ borderColor: B.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        {/* Avatar + name */}
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg,#F97316,#EA580C)' }}
+          >
+            {user.displayName.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold" style={{ color: B.text }}>
+              {user.displayName}
+            </p>
+            <p className="truncate text-xs" style={{ color: B.faint }}>
+              {user.email}
+            </p>
+          </div>
+        </div>
+        <ActionMenu user={user} onAction={onAction} />
+      </div>
+
+      {/* Chips row */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
+          style={{ background: chip.bg, color: chip.color }}
+        >
+          {chip.icon}
+          {chip.label}
+        </span>
+        <span
+          className="inline-block rounded-lg px-2 py-0.5 text-xs font-bold"
+          style={{
+            background: `${kycColor(user.kycTier)}18`,
+            color: kycColor(user.kycTier),
+          }}
+        >
+          KYC T{user.kycTier}
+        </span>
+        <span
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
+          style={{ background: B.surface, color: B.muted }}
+        >
+          <Shield size={10} />
+          {user.roleId.replace(/_/g, ' ')}
+        </span>
+        <span
+          className="inline-flex items-center gap-1 text-xs font-semibold capitalize"
+          style={{ color: riskColor(user.riskLevel) }}
+        >
+          <TrendingUp size={10} />
+          {user.riskLevel}
+        </span>
+      </div>
+
+      <p className="mt-2 flex items-center gap-1 text-xs" style={{ color: B.faint }}>
+        <Clock size={10} />
+        {formatDate(user.createdAt)}
+      </p>
     </div>
   );
 }
@@ -457,7 +565,10 @@ export default function AdminUsersPage() {
       setNote('');
       setModalError(null);
     }
-    // view / wallet — would route to detail pages
+
+    if(action === 'view') {
+        window.location.href = `/admin/users/${user.uid}`;
+    }
   };
 
   // ── Confirm action ─────────────────────────────────────────────────────────
@@ -480,7 +591,6 @@ export default function AdminUsersPage() {
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
       } else {
-        // suspend / activate — PUT to users
         const res = await fetch('/api/internal/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -527,7 +637,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  // ── Client-side filter (supplementary to server) ───────────────────────────
+  // ── Client-side filter ────────────────────────────────────────────────────
   const visible = users.filter((u) => {
     if (search) {
       const q = search.toLowerCase();
@@ -611,7 +721,6 @@ export default function AdminUsersPage() {
       {/* Search + Filters */}
       <div className="rounded-2xl border bg-white p-4" style={{ borderColor: B.border }}>
         <div className="flex flex-col gap-3 sm:flex-row">
-          {/* Search */}
           <div className="relative flex-1">
             <Search
               size={15}
@@ -636,7 +745,6 @@ export default function AdminUsersPage() {
             )}
           </div>
 
-          {/* Filter toggle */}
           <button
             onClick={() => setShowFilters((f) => !f)}
             className="flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm transition"
@@ -653,7 +761,6 @@ export default function AdminUsersPage() {
 
         {showFilters && (
           <div className="mt-3 grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-3" style={{ borderColor: B.border }}>
-            {/* Status */}
             <div>
               <label className="mb-1 block text-xs font-semibold" style={{ color: B.faint }}>
                 STATUS
@@ -671,7 +778,6 @@ export default function AdminUsersPage() {
               </select>
             </div>
 
-            {/* KYC */}
             <div>
               <label className="mb-1 block text-xs font-semibold" style={{ color: B.faint }}>
                 KYC TIER
@@ -690,7 +796,6 @@ export default function AdminUsersPage() {
               </select>
             </div>
 
-            {/* Risk */}
             <div>
               <label className="mb-1 block text-xs font-semibold" style={{ color: B.faint }}>
                 RISK LEVEL
@@ -711,153 +816,190 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl border bg-white" style={{ borderColor: B.border }}>
-        {/* Error */}
-        {error && (
-          <div className="flex items-center gap-3 rounded-t-2xl border-b px-5 py-4" style={{ background: '#FEF2F2', borderColor: '#FECACA' }}>
-            <AlertTriangle size={16} color="#DC2626" />
-            <p className="text-sm text-red-700">{error}</p>
-            <button onClick={fetchUsers} className="ml-auto text-sm font-semibold text-red-700 underline">
-              Retry
-            </button>
-          </div>
-        )}
+      {/* ── Error banner ── */}
+      {error && (
+        <div
+          className="flex items-center gap-3 rounded-2xl border px-5 py-4"
+          style={{ background: '#FEF2F2', borderColor: '#FECACA' }}
+        >
+          <AlertTriangle size={16} color="#DC2626" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={fetchUsers} className="ml-auto text-sm font-semibold text-red-700 underline">
+            Retry
+          </button>
+        </div>
+      )}
 
-        {/* Table wrapper */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="border-b" style={{ borderColor: B.border }}>
-                {['User', 'Role', 'KYC', 'Status', 'Risk', 'Joined', ''].map((h) => (
-                  <th
-                    key={h}
-                    className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: B.faint, background: B.surface }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} className="border-b" style={{ borderColor: B.border }}>
-                      {Array.from({ length: 7 }).map((__, j) => (
-                        <td key={j} className="px-5 py-4">
+      {/* ── Mobile card list (< md) ── */}
+      <div className="md:hidden space-y-3">
+        {loading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-2xl border bg-white p-4"
+                style={{ borderColor: B.border }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full" style={{ background: B.border }} />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-32 rounded" style={{ background: B.border }} />
+                    <div className="h-3 w-48 rounded" style={{ background: B.border }} />
+                  </div>
+                </div>
+              </div>
+            ))
+          : visible.length === 0
+          ? (
+              <div
+                className="rounded-2xl border bg-white py-16 text-center"
+                style={{ borderColor: B.border, color: B.faint }}
+              >
+                <Users size={32} className="mx-auto mb-3 opacity-30" />
+                <p className="font-medium">No users found</p>
+              </div>
+            )
+          : visible.map((user) => (
+              <UserCard key={user.uid} user={user} onAction={handleAction} />
+            ))}
+      </div>
+
+      {/* ── Desktop table (≥ md) ── */}
+      <div
+        className="hidden md:block rounded-2xl border bg-white"
+        style={{ borderColor: B.border }}
+      >
+        {/* No overflow-x-auto here — ActionMenu uses position:fixed to escape */}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b" style={{ borderColor: B.border }}>
+              {['User', 'Role', 'KYC', 'Status', 'Risk', 'Joined', ''].map((h) => (
+                <th
+                  key={h}
+                  className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: B.faint, background: B.surface }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-b" style={{ borderColor: B.border }}>
+                    {Array.from({ length: 7 }).map((__, j) => (
+                      <td key={j} className="px-5 py-4">
+                        <div
+                          className="h-4 animate-pulse rounded"
+                          style={{ background: B.border, width: j === 0 ? 160 : 60 }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : visible.length === 0
+              ? (
+                  <tr>
+                    <td colSpan={7} className="py-16 text-center" style={{ color: B.faint }}>
+                      <Users size={32} className="mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">No users found</p>
+                      {(search || filterStatus !== 'all') && (
+                        <p className="mt-1 text-xs">Try adjusting your filters</p>
+                      )}
+                    </td>
+                  </tr>
+                )
+              : visible.map((user) => {
+                  const chip = statusChip(user);
+                  return (
+                    <tr
+                      key={user.uid}
+                      className="border-b transition-colors hover:bg-gray-50"
+                      style={{ borderColor: B.border }}
+                    >
+                      {/* User */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
                           <div
-                            className="h-4 animate-pulse rounded"
-                            style={{ background: B.border, width: j === 0 ? 160 : 60 }}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                : visible.length === 0
-                ? (
-                    <tr>
-                      <td colSpan={7} className="py-16 text-center" style={{ color: B.faint }}>
-                        <Users size={32} className="mx-auto mb-3 opacity-30" />
-                        <p className="font-medium">No users found</p>
-                        {(search || filterStatus !== 'all') && (
-                          <p className="mt-1 text-xs">Try adjusting your filters</p>
-                        )}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                            style={{ background: 'linear-gradient(135deg,#F97316,#EA580C)' }}
+                          >
+                            {user.displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold" style={{ color: B.text }}>
+                              {user.displayName}
+                            </p>
+                            <p className="truncate text-xs" style={{ color: B.faint }}>
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
+                          style={{ background: B.surface, color: B.muted }}
+                        >
+                          <Shield size={10} />
+                          {user.roleId.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+
+                      {/* KYC */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className="inline-block rounded-lg px-2 py-0.5 text-xs font-bold"
+                          style={{
+                            background: `${kycColor(user.kycTier)}18`,
+                            color: kycColor(user.kycTier),
+                          }}
+                        >
+                          T{user.kycTier} {kycLabel(user.kycTier)}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
+                          style={{ background: chip.bg, color: chip.color }}
+                        >
+                          {chip.icon}
+                          {chip.label}
+                        </span>
+                      </td>
+
+                      {/* Risk */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className="inline-flex items-center gap-1 text-xs font-semibold capitalize"
+                          style={{ color: riskColor(user.riskLevel) }}
+                        >
+                          <TrendingUp size={11} />
+                          {user.riskLevel}
+                        </span>
+                      </td>
+
+                      {/* Joined */}
+                      <td className="px-5 py-3.5">
+                        <span className="flex items-center gap-1 text-xs" style={{ color: B.muted }}>
+                          <Clock size={11} />
+                          {formatDate(user.createdAt)}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-3 py-3.5">
+                        <ActionMenu user={user} onAction={handleAction} />
                       </td>
                     </tr>
-                  )
-                : visible.map((user) => {
-                    const chip = statusChip(user);
-                    return (
-                      <tr
-                        key={user.uid}
-                        className="border-b transition-colors hover:bg-gray-50"
-                        style={{ borderColor: B.border }}
-                      >
-                        {/* User */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                              style={{ background: 'linear-gradient(135deg,#F97316,#EA580C)' }}
-                            >
-                              {user.displayName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate font-semibold" style={{ color: B.text }}>
-                                {user.displayName}
-                              </p>
-                              <p className="truncate text-xs" style={{ color: B.faint }}>
-                                {user.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Role */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
-                            style={{ background: B.surface, color: B.muted }}
-                          >
-                            <Shield size={10} />
-                            {user.roleId.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-
-                        {/* KYC */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className="inline-block rounded-lg px-2 py-0.5 text-xs font-bold"
-                            style={{
-                              background: `${kycColor(user.kycTier)}18`,
-                              color: kycColor(user.kycTier),
-                            }}
-                          >
-                            T{user.kycTier} {kycLabel(user.kycTier)}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
-                            style={{ background: chip.bg, color: chip.color }}
-                          >
-                            {chip.icon}
-                            {chip.label}
-                          </span>
-                        </td>
-
-                        {/* Risk */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className="inline-flex items-center gap-1 text-xs font-semibold capitalize"
-                            style={{ color: riskColor(user.riskLevel) }}
-                          >
-                            <TrendingUp size={11} />
-                            {user.riskLevel}
-                          </span>
-                        </td>
-
-                        {/* Joined */}
-                        <td className="px-5 py-3.5">
-                          <span className="flex items-center gap-1 text-xs" style={{ color: B.muted }}>
-                            <Clock size={11} />
-                            {formatDate(user.createdAt)}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-3 py-3.5">
-                          <ActionMenu user={user} onAction={handleAction} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-            </tbody>
-          </table>
-        </div>
+                  );
+                })}
+          </tbody>
+        </table>
 
         {/* Pagination */}
         {!loading && visible.length > 0 && (
@@ -892,6 +1034,34 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile pagination */}
+      {!loading && visible.length > 0 && (
+        <div className="flex items-center justify-between md:hidden">
+          <p className="text-xs" style={{ color: B.faint }}>
+            Page {page} · {visible.length} records
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border transition hover:bg-gray-50 disabled:opacity-40"
+              style={{ borderColor: B.border }}
+            >
+              <ChevronLeft size={15} style={{ color: B.muted }} />
+            </button>
+            <span className="text-xs font-semibold" style={{ color: B.text }}>{page}</span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!hasMore}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border transition hover:bg-gray-50 disabled:opacity-40"
+              style={{ borderColor: B.border }}
+            >
+              <ChevronRight size={15} style={{ color: B.muted }} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Confirm modal */}
       {modalKind && modalUser && (
