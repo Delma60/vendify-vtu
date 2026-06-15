@@ -282,3 +282,18 @@ export interface WhatsappMessageResponse {
   error?: string;
 }
 
+
+export interface RoleRecord {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  isSystemRole: boolean;
+  userCount: number;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+export type PermissionGroups = Record<string, string[]>;
+

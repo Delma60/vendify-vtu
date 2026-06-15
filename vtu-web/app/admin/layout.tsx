@@ -42,6 +42,8 @@ import {
   SlidersHorizontal,
   HardDrive,
 } from 'lucide-react';
+import { useImpersonation } from '@/hooks/useImpersonation';
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 
@@ -85,8 +87,7 @@ const ADMIN_NAV: NavSection[] = [
         children: [
           { href: '/admin/users', label: 'All Users', icon: Users },
           { href: '/admin/users/kyc', label: 'KYC Verification', icon: UserCheck },
-          { href: '/admin/users/roles', label: 'Roles & Permissions', icon: Shield },
-          { href: '/admin/users/impersonate', label: 'Impersonate User', icon: Activity },
+          { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
         ],
       },
       { href: '/admin/support', label: 'Support Tickets', icon: Megaphone },
@@ -673,6 +674,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const router = useRouter();
 
+  const { session: impersonationSession, end: endImpersonation, loading: endingImpersonation } = useImpersonation();
+
   const handleLogout = async () => {
     setLoggingOut(true);
     setLogoutError(null);
@@ -713,6 +716,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {impersonationSession && (
+          <ImpersonationBanner
+            session={impersonationSession}
+            onEnd={endImpersonation}
+            ending={endingImpersonation}
+          />
+        )}
         <Topbar onMenu={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto bg-white">
           <div className="min-h-full p-4 sm:p-6">{children}</div>
