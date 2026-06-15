@@ -81,30 +81,38 @@ export class AdexProvider extends ProviderBase {
    * The token is cached in Firestore for 5 minutes (mirroring the PHP Cache::remember).
    */
   private async getAccessToken(): Promise<string> {
+    if (!this.config.username || !this.config.password) {
+      throw new Error(
+        `Adex provider "${this.config.name}" is missing username or password in its Firestore config. ` +
+        `Go to Admin → Providers → Configure and enter both fields.`
+      );
+    }
+ 
     const cacheKey = `adex_token_${this.config.id}`;
     const cacheRef = adminDb.collection('system_cache').doc(cacheKey);
+ 
+    // Check in-memory Firestore cache first
     const cached = await cacheRef.get();
-
     if (cached.exists) {
       const data = cached.data() as { token: string; expiresAt: number };
       if (data.expiresAt > Date.now()) {
         return data.token;
       }
     }
-
+ 
     // Re-authenticate
     const loginData = await this.login();
     const token = loginData.AccessToken ?? '';
-    if (!token) throw new Error('Adex: failed to obtain access token');
-
+    if (!token) throw new Error('Adex: failed to obtain access token — check username/password');
+ 
+    // Cache for 5 minutes
     await cacheRef.set({
       token,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes, matching PHP side
+      expiresAt: Date.now() + 5 * 60 * 1000,
     });
-
+ 
     return token;
   }
-
   /**
    * POST /user with Basic auth — returns balance + AccessToken.
    */

@@ -13,49 +13,85 @@ import {
 } from '@/lib/roles/middleware';
 import { ok, err, parseIp } from '@/lib/utils/response';
 import { invalidateProviderConfigCache } from '@/lib/providers/config';
-import type { ProviderConfig, ServiceType } from '@/types/provider';
+import { ProviderFactory } from '@/lib/providers/factory';
+import type { ProviderConfig, ServiceType, ProviderAuthMethod } from '@/types/provider';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const VALID_SERVICES: ServiceType[] = ['airtime', 'data', 'cable', 'electricity', 'exam', 'sms'];
+const VALID_AUTH_METHODS: ProviderAuthMethod[] = ['api_key', 'basic', 'bearer', 'token_login'];
+const ServiceEnum = z.enum(['airtime', 'data', 'cable', 'electricity', 'exam', 'sms']);
 
 const UpdateProviderSchema = z.object({
   providerId: z.string().min(1, 'Provider ID is required'),
   isActive: z.boolean().optional(),
   priority: z
-    .record(z.enum(['airtime', 'data', 'cable', 'electricity', 'exam', 'sms']), z.number().int().min(1).max(99))
+    .record(ServiceEnum, z.number().int().min(1).max(99))
     .optional(),
-  services: z
-    .array(z.enum(['airtime', 'data', 'cable', 'electricity', 'exam', 'sms']))
-    .optional(),
+  services: z.array(ServiceEnum).optional(),
   lowFloatThresholdKobo: z.number().int().min(0).optional(),
   autoFundEnabled: z.boolean().optional(),
   autoFundAmountKobo: z.number().int().min(0).optional(),
 });
 
-const CreateProviderSchema = z.object({
-  code: z.string().min(2).max(40).regex(/^[a-z0-9_]+$/, 'Use lowercase letters, numbers, underscores only'),
-  name: z.string().min(2).max(80),
-  baseUrl: z.string().url('Base URL must be a valid URL'),
-  apiKey: z.string().min(4),
-  publicKey: z.string().optional(),
-  secretKey: z.string().optional(),
-  identifier: z.string().min(2).max(60),
-  services: z.array(z.enum(['airtime', 'data', 'cable', 'electricity', 'exam', 'sms'])).min(1),
-  priority: z
-    .record(z.enum(['airtime', 'data', 'cable', 'electricity', 'exam', 'sms']), z.number().int().min(1).max(99))
-    .optional()
-    .default({}),
-  lowFloatThresholdKobo: z.number().int().min(0).optional().default(5_000_000), // ₦50,000
-  autoFundEnabled: z.boolean().optional().default(false),
-  autoFundAmountKobo: z.number().int().min(0).optional().default(0),
-});
+const CreateProviderSchema = z
+  .object({
+    code: z
+      .string()
+      .min(2)
+      .max(40)
+      .regex(/^[a-z0-9_]+$/, 'Use lowercase letters, numbers, underscores only'),
+    name: z.string().min(2).max(80),
+    baseUrl: z.string().url('Base URL must be a valid URL'),
+    identifier: z.string().min(2).max(60),
+    services: z.array(ServiceEnum).min(1),
+    priority: z
+      .record(ServiceEnum, z.number().int().min(1).max(99))
+      .optional()
+      .default({}),
+    lowFloatThresholdKobo: z.number().int().min(0).optional().default(5_000_000), // ₦50,000
+    autoFundEnabled: z.boolean().optional().default(false),
+    autoFundAmountKobo: z.number().int().min(0).optional().default(0),
+
+    // ── Credentials — conditionally required per authMethod ──────────────────
+    authMethod: z.enum(['api_key', 'basic', 'bearer', 'token_login']),
+    apiKey: z.string().optional().default(''),
+    publicKey: z.string().optional().default(''),
+    secretKey: z.string().optional().default(''),
+    username: z.string().optional().default(''),
+    password: z.string().optional().default(''),
+  })
+  .superRefine((data, ctx) => {
+    switch (data.authMethod) {
+      case 'api_key':
+      case 'bearer':
+        if (!data.apiKey) {
+          ctx.addIssue({ code: 'custom', path: ['apiKey'], message: 'API key is required' });
+        }
+        break;
+      case 'basic':
+        if (!data.username) {
+          ctx.addIssue({ code: 'custom', path: ['username'], message: 'Username is required' });
+        }
+        if (!data.password) {
+          ctx.addIssue({ code: 'custom', path: ['password'], message: 'Password is required' });
+        }
+        break;
+      case 'token_login':
+        if (!data.username) {
+          ctx.addIssue({ code: 'custom', path: ['username'], message: 'Username is required' });
+        }
+        if (!data.password) {
+          ctx.addIssue({ code: 'custom', path: ['password'], message: 'Password is required' });
+        }
+        break;
+    }
+  });
 
 // ─── Helper: fetch live provider balance ──────────────────────────────────────
 
 async function fetchProviderBalance(config: ProviderConfig): Promise<number | null> {
   try {
-    const { ProviderFactory } = await import('@/lib/providers/factory');
     const instance = ProviderFactory.make(config);
     return await instance.getBalance();
   } catch {
@@ -65,7 +101,6 @@ async function fetchProviderBalance(config: ProviderConfig): Promise<number | nu
 
 async function fetchProviderHealth(config: ProviderConfig): Promise<'healthy' | 'degraded' | 'down'> {
   try {
-    const { ProviderFactory } = await import('@/lib/providers/factory');
     const instance = ProviderFactory.make(config);
     const start = Date.now();
     const healthy = await instance.isHealthy();
@@ -77,13 +112,23 @@ async function fetchProviderHealth(config: ProviderConfig): Promise<'healthy' | 
   }
 }
 
+// ─── Mask sensitive credential fields ─────────────────────────────────────────
+
+function maskCredentials(p: ProviderConfig): Partial<ProviderConfig> {
+  const masked: any = { ...p };
+  if (masked.apiKey) {
+    masked.apiKey = `${masked.apiKey.slice(0, 6)}${'*'.repeat(Math.max(0, masked.apiKey.length - 6))}`;
+  }
+  if (masked.secretKey) masked.secretKey = '••••••••';
+  if (masked.publicKey && masked.publicKey.length > 8) {
+    masked.publicKey = `${masked.publicKey.slice(0, 8)}••••`;
+  }
+  if (masked.password) masked.password = '••••••••';
+  // username is safe to show (it's usually an email)
+  return masked;
+}
+
 // ─── GET /api/internal/providers ─────────────────────────────────────────────
-//
-// Returns all configured providers plus optional live health/balance data.
-//
-// Query params:
-//   withHealth=true     — ping each provider for health & balance (slower)
-//   service=airtime     — filter to providers supporting a specific service
 
 export async function GET(request: NextRequest) {
   let ctx;
@@ -105,7 +150,6 @@ export async function GET(request: NextRequest) {
   const snap = await query.get();
   const rawProviders = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProviderConfig);
 
-  // Optionally enrich with live health & balance data
   let providers;
   if (withHealth) {
     providers = await Promise.all(
@@ -115,25 +159,19 @@ export async function GET(request: NextRequest) {
           fetchProviderBalance(p),
         ]);
         return {
-          ...p,
-          // Mask credentials from the response
-          apiKey: `${p.apiKey.slice(0, 6)}${'*'.repeat(Math.max(0, p.apiKey.length - 6))}`,
-          secretKey: p.secretKey ? '••••••••' : null,
+          ...maskCredentials(p),
           liveStatus: status,
           liveBalanceKobo: balanceKobo,
         };
       })
     );
   } else {
-    // Return cached float data from Firestore only (no provider ping)
     providers = await Promise.all(
       rawProviders.map(async (p) => {
         const floatSnap = await adminDb.collection('provider_floats').doc(p.id).get();
         const float = floatSnap.exists ? floatSnap.data() : null;
         return {
-          ...p,
-          apiKey: `${p.apiKey.slice(0, 6)}${'*'.repeat(Math.max(0, p.apiKey.length - 6))}`,
-          secretKey: p.secretKey ? '••••••••' : null,
+          ...maskCredentials(p),
           liveStatus: null,
           cachedBalanceKobo: (float as { balance?: number } | null)?.balance ?? null,
           lowFloatThresholdKobo: (float as { lowThreshold?: number } | null)?.lowThreshold ?? null,
@@ -143,7 +181,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Build a service routing map: for each service, which provider handles it (by priority)?
+  // Build service routing map
   const routingMap: Record<string, { providerId: string; providerName: string; priority: number }[]> = {};
   for (const service of VALID_SERVICES) {
     const serviceProviders = rawProviders
@@ -161,11 +199,11 @@ export async function GET(request: NextRequest) {
     providers,
     routingMap,
     totalCount: providers.length,
-    activeCount: providers.filter((p) => p.isActive).length,
+    activeCount: providers.filter((p: any) => p.isActive).length,
   });
 }
 
-// ─── POST /api/internal/providers — register new provider ────────────────────
+// ─── POST /api/internal/providers ────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   let ctx;
@@ -181,7 +219,17 @@ export async function POST(request: NextRequest) {
 
   const d = parsed.data;
 
-  // Guard: code must be unique
+  // Guard: code must match a registered implementation
+  if (!ProviderFactory.isRegistered(d.code)) {
+    return err(
+      `No implementation found for code "${d.code}". ` +
+      `Available codes: ${ProviderFactory.getRegistry().map(r => r.code).join(', ')}`,
+      400,
+      'UNKNOWN_PROVIDER_CODE'
+    );
+  }
+
+  // Guard: code must be unique in Firestore
   const existing = await adminDb.collection('providers').where('code', '==', d.code).limit(1).get();
   if (!existing.empty) {
     return err(`A provider with code '${d.code}' already exists.`, 409);
@@ -194,11 +242,14 @@ export async function POST(request: NextRequest) {
     code: d.code,
     name: d.name,
     baseUrl: d.baseUrl,
+    authMethod: d.authMethod,
     apiKey: d.apiKey,
-    publicKey: d.publicKey ?? '',
-    secretKey: d.secretKey ?? '',
+    publicKey: d.publicKey,
+    secretKey: d.secretKey,
+    username: d.username,
+    password: d.password,
     identifier: d.identifier,
-    isActive: false, // New providers start inactive — must be explicitly enabled
+    isActive: false,     // starts inactive — must be explicitly enabled
     services: d.services,
     priority: d.priority ?? {},
     createdAt: now,
@@ -227,7 +278,7 @@ export async function POST(request: NextRequest) {
     resource: 'providers',
     targetId: ref.id,
     before: null,
-    after: { ...newProvider, id: ref.id },
+    after: { ...maskCredentials({ ...newProvider, id: ref.id } as ProviderConfig), id: ref.id },
     ip: parseIp(request),
   });
 
@@ -238,7 +289,7 @@ export async function POST(request: NextRequest) {
   );
 }
 
-// ─── PUT /api/internal/providers — update provider config ────────────────────
+// ─── PUT /api/internal/providers ─────────────────────────────────────────────
 
 export async function PUT(request: NextRequest) {
   let ctx;
@@ -267,13 +318,11 @@ export async function PUT(request: NextRequest) {
 
   await ref.update(providerUpdates);
 
-  // Update float config if relevant fields changed
   if (lowFloatThresholdKobo !== undefined || autoFundEnabled !== undefined || autoFundAmountKobo !== undefined) {
     const floatUpdates: Record<string, unknown> = { updatedAt: Timestamp.now() };
     if (lowFloatThresholdKobo !== undefined) floatUpdates.lowThreshold = lowFloatThresholdKobo;
     if (autoFundEnabled !== undefined) floatUpdates.autoFundEnabled = autoFundEnabled;
     if (autoFundAmountKobo !== undefined) floatUpdates.autoFundAmount = autoFundAmountKobo;
-
     await adminDb.collection('provider_floats').doc(providerId).set(floatUpdates, { merge: true });
   }
 
@@ -281,11 +330,7 @@ export async function PUT(request: NextRequest) {
 
   await writeAuditLog({
     adminId: ctx.uid,
-    action: isActive === true
-      ? 'provider:enable'
-      : isActive === false
-      ? 'provider:disable'
-      : 'provider:update',
+    action: isActive === true ? 'provider:enable' : isActive === false ? 'provider:disable' : 'provider:update',
     resource: 'providers',
     targetId: providerId,
     before,
@@ -293,15 +338,10 @@ export async function PUT(request: NextRequest) {
     ip: parseIp(request),
   });
 
-  return ok(
-    { providerId, updated: providerUpdates },
-    `Provider "${before.name}" updated.`
-  );
+  return ok({ providerId, updated: providerUpdates }, `Provider "${before.name}" updated.`);
 }
 
-// ─── DELETE /api/internal/providers — soft-disable (never hard-delete) ───────
-// We never hard-delete providers — they have transaction history.
-// Disabling sets isActive = false; the record is retained indefinitely.
+// ─── DELETE /api/internal/providers ──────────────────────────────────────────
 
 export async function DELETE(request: NextRequest) {
   let ctx;

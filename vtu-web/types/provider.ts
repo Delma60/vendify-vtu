@@ -1,21 +1,41 @@
-// vtu-web/lib/providers/types.ts
+// vtu-web/types/provider.ts
 // AGENTS.md RULES: #1 (kobo), #13 (config from Firestore)
 
 import { Timestamp } from 'firebase-admin/firestore';
 
 export type ServiceType = 'airtime' | 'data' | 'cable' | 'electricity' | 'exam' | 'sms';
 
+// ─── Auth method supported by a provider ─────────────────────────────────────
+
+/**
+ * Describes which credential fields a provider uses.
+ *
+ * | authMethod   | Fields used                              |
+ * |--------------|------------------------------------------|
+ * | api_key      | apiKey                                   |
+ * | basic        | username + password (HTTP Basic Auth)    |
+ * | bearer       | apiKey sent as Bearer token              |
+ * | token_login  | username + password → exchange for token |
+ */
+export type ProviderAuthMethod = 'api_key' | 'basic' | 'bearer' | 'token_login';
+
 // ─── Provider config (loaded from Firestore `providers` collection) ──────────
 
 export interface ProviderConfig {
   id: string;
-  code: string;              // implementation key used by ProviderFactory
-  name: string;               // display name, e.g. "VTPass"
+  code: string;              // implementation key used by ProviderFactory, e.g. 'adex', 'vtpass'
+  name: string;              // display name, e.g. "VTPass"
   baseUrl: string;
-  apiKey: string;
+
+  // ── Credentials (store only what the provider needs) ──────────────────────
+  authMethod: ProviderAuthMethod;
+  apiKey: string;            // used by api_key / bearer methods; leave '' for basic-only providers
   publicKey?: string;
   secretKey?: string;
-  identifier: string;         // webhook routing key
+  username?: string;         // used by basic / token_login
+  password?: string;         // used by basic / token_login
+
+  identifier: string;        // webhook routing key
   isActive: boolean;
   services: ServiceType[];
   priority: Partial<Record<ServiceType, number>>;
@@ -110,4 +130,32 @@ export interface WebhookResult {
   status: 'success' | 'failed' | 'pending';
   token?: string | null;
   providerReference?: string | null;
+}
+
+// ─── Provider registry entry (used by admin UI) ───────────────────────────────
+
+/**
+ * Metadata about a provider implementation class.
+ * Returned by ProviderFactory.getRegistry() and surfaced in the admin UI
+ * so admins pick a real code from a dropdown instead of typing freehand.
+ */
+export interface ProviderRegistryEntry {
+  /** Must match ProviderConfig.code stored in Firestore */
+  code: string;
+  /** Human-readable name shown in the dropdown */
+  label: string;
+  /** Which auth fields this provider needs */
+  authMethod: ProviderAuthMethod;
+  /** Credential field hints shown in the add-provider form */
+  credentialHints: {
+    apiKey?: string;        // placeholder text for the api_key field
+    publicKey?: string;
+    secretKey?: string;
+    username?: string;
+    password?: string;
+  };
+  /** Services this provider is known to support (defaults shown in form) */
+  defaultServices: ServiceType[];
+  /** URL of the provider's developer docs (optional, shown as a link) */
+  docsUrl?: string;
 }
