@@ -159,3 +159,28 @@ export interface ProviderRegistryEntry {
   /** URL of the provider's developer docs (optional, shown as a link) */
   docsUrl?: string;
 }
+
+
+export interface IDataPlan extends IPlan {
+  network:string;
+  plan:string;
+  plan_name:string;
+  plan_size:string;
+  plan_type:string;
+  validity:string;
+}
+
+
+
+export interface IPlan  {
+  readonly id:string;
+
+  rolePrices?:Record<string,number>;
+
+  price?:string;
+  price_ngn:string;
+  status:"active"|"inactive";
+  active:boolean;
+  type:string;
+
+}
