@@ -1,37 +1,43 @@
 // vtu-web/lib/providers/interface.ts
-// AGENTS.md RULES: #3 (payments), #4 (zod), #14 (runtime config)
+// AGENTS.md RULES: #3 (payments), #13 (config from Firestore)
 
-// IMPORTS NEEDED:
-// - ProviderResponse types from @/types
-// - DataPlan, MeterInfo, SmartCardInfo types from @/types
+import type {
+  AirtimeParams,
+  CableParams,
+  DataParams,
+  ElectricityParams,
+  ExamPinParams,
+  MeterInfo,
+  ProviderConfig,
+  ProviderResponse,
+  ServiceType,
+  SmartCardInfo,
+  WebhookResult,
+} from '@/types/provider';
 
-// ─── PROVIDER INTERFACES ───────────────────────────────────────────────────────
+/**
+ * Every concrete provider (VTPass, SME Plug, Bilal, Ogdams, ...) must
+ * implement this interface. ProviderFactory.make() returns this type.
+ */
+export interface VTUProviderInterface {
+  readonly code: string;
+  readonly config: ProviderConfig;
 
-// INTERFACE: VTUProvider
-// PURPOSE : Abstract provider operations for airtime, data, cable, electricity, and more.
-//
-// PROPERTIES:
-//   - name: string
-//   - supportsPricePullAPI: boolean
-//
-// METHODS:
-//   - buyAirtime(params: AirtimeParams): Promise<ProviderResponse>
-//   - buyData(params: DataParams): Promise<ProviderResponse>
-//   - payElectricity(params: ElectricityParams): Promise<ProviderResponse>
-//   - payCable(params: CableParams): Promise<ProviderResponse>
-//   - buyExamPin(params: ExamPinParams): Promise<ProviderResponse>
-//   - getDataPlans(network: string): Promise<DataPlan[]>
-//   - verifyMeter(meterNumber: string, disco: string, type: string): Promise<MeterInfo>
-//   - verifySmartCard(number: string, provider: string): Promise<SmartCardInfo>
-//   - getBalance(): Promise<number>
-//   - checkTransactionStatus(reference: string): Promise<ProviderResponse>
+  buyAirtime(params: AirtimeParams): Promise<ProviderResponse>;
+  buyData(params: DataParams): Promise<ProviderResponse>;
+  payElectricity(params: ElectricityParams): Promise<ProviderResponse>;
+  payCable(params: CableParams): Promise<ProviderResponse>;
+  buyExamPin(params: ExamPinParams): Promise<ProviderResponse>;
 
-// TYPE: AirtimeParams
-// TYPE: DataParams
-// TYPE: ElectricityParams
-// TYPE: CableParams
-// TYPE: ExamPinParams
-// TYPE: ProviderResponse
-// TYPE: DataPlan
-// TYPE: MeterInfo
-// TYPE: SmartCardInfo
+  verifyMeter(meterNumber: string, disco: string, type: 'prepaid' | 'postpaid'): Promise<MeterInfo>;
+  verifySmartCard(cardNumber: string, cableNetwork: string): Promise<SmartCardInfo>;
+
+  getBalance(): Promise<number>;
+  checkTransactionStatus(reference: string): Promise<ProviderResponse>;
+
+  supportsService(service: ServiceType): boolean;
+  isHealthy(): Promise<boolean>;
+
+  /** Normalise an inbound webhook/callback payload from this provider */
+  handleWebhook(payload: Record<string, unknown>): Promise<WebhookResult>;
+}
