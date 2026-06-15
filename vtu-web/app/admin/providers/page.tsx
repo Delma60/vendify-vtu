@@ -547,6 +547,7 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
               <input
                 type={key === 'apiKey' ? 'password' : 'text'}
                 placeholder={placeholder}
+                name={key}
                 value={form[key]}
                 onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                 className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2"
