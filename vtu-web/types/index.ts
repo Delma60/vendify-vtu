@@ -297,3 +297,13 @@ export interface RoleRecord {
 
 export type PermissionGroups = Record<string, string[]>;
 
+export interface Network {
+  id: string;
+  name: string;
+  shortcode: string;
+  color: string;
+  logoLetter: string;
+  isActive: boolean;
+  airtimeEnabled: boolean;
+  dataEnabled: boolean;
+}

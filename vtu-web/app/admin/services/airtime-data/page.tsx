@@ -33,6 +33,7 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
+import { CreateNetworkModal } from "@/components/admin/CreateNetworkModal";
 
 // ─── Brand tokens (matching admin layout) ─────────────────────────────────────
 
@@ -682,14 +683,38 @@ function EmptyState({
 // ─── Tab: Networks ────────────────────────────────────────────────────────────
 
 function NetworksTab() {
-  const [networks, setNetworks] = useState<Network[]>(NETWORKS);
+  const [networks, setNetworks] = useState<Network[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Network>>({});
   const [saving, setSaving] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
   } | null>(null);
+
+  // 1. READ: Fetch all networks on mount
+  useEffect(() => {
+    async function fetchNetworks() {
+      try {
+        const response = await fetch("/api/v1/networks");
+        const json = await response.json();
+
+        if (response.ok) {
+          // Based on your ok() response wrapper shape
+          setNetworks(json.data?.networks || json.networks || []);
+        } else {
+          showToast(json.message || "Failed to load networks", "error");
+        }
+      } catch (error) {
+        showToast("Network error. Could not connect to API.", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNetworks();
+  }, []);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -706,33 +731,102 @@ function NetworksTab() {
     setEditForm({});
   }
 
+  // 2. UPDATE: Save edited fields (Name, Shortcode)
   async function saveEdit() {
+    if (!editingId) return;
+
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setNetworks((prev) =>
-      prev.map((n) => (n.id === editingId ? { ...n, ...editForm } : n)),
-    );
-    setSaving(false);
-    setEditingId(null);
-    setEditForm({});
-    showToast("Network updated.");
+    try {
+      const response = await fetch(`/api/v1/networks/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update network");
+      }
+
+      setNetworks((prev) =>
+        prev.map((n) => (n.id === editingId ? { ...n, ...editForm } : n)),
+      );
+
+      showToast("Network updated.");
+      setEditingId(null);
+      setEditForm({});
+    } catch (error) {
+      showToast("Failed to save changes. Try again.", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function toggleNetwork(
+  // 3. UPDATE: Toggle specific booleans instantly
+  async function toggleNetwork(
     id: string,
     field: "isActive" | "airtimeEnabled" | "dataEnabled",
     val: boolean,
   ) {
+    // Optimistic UI Update: Change it immediately so it feels snappy
     setNetworks((prev) =>
       prev.map((n) => (n.id === id ? { ...n, [field]: val } : n)),
     );
-    showToast(
-      `${field === "isActive" ? "Network" : field === "airtimeEnabled" ? "Airtime" : "Data"} ${val ? "enabled" : "disabled"}.`,
+
+    try {
+      const response = await fetch(`/api/v1/networks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: val }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle");
+      }
+
+      showToast(
+        `${field === "isActive" ? "Network" : field === "airtimeEnabled" ? "Airtime" : "Data"} ${val ? "enabled" : "disabled"}.`,
+      );
+    } catch (error) {
+      // Revert the UI if the API call fails
+      setNetworks((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, [field]: !val } : n)),
+      );
+      showToast("Failed to update setting.", "error");
+    }
+  }
+
+  // Optional: Return a simple loader while fetching initial data so it doesn't look broken
+  if (loading) {
+    return (
+      <div className="p-4 text-center text-sm text-gray-500 animate-pulse">
+        Loading networks...
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold" style={{ color: B.text }}>Active Networks</h2>
+          <p className="text-sm" style={{ color: B.textMuted }}>Manage your supported telecom, cable, and electricity providers.</p>
+        </div>
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
+          style={{ background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})` }}
+        >
+          <Plus size={16} />
+          Add Network
+        </button>
+      </div>
+      {
+        networks.length === 0 && (
+          <div className="">
+            <EmptyState title="No networks found" icon={Network} />
+          </div>
+        )
+      }
       {networks.map((net) => (
         <Card key={net.id} className="overflow-hidden">
           <div className="p-5">
@@ -756,7 +850,7 @@ function NetworksTab() {
                     className="rounded-xl border px-3 py-1.5 text-sm font-semibold"
                     style={{ borderColor: B.border, color: B.text, width: 120 }}
                   />
-                  <input
+                  {/* <input
                     value={editForm.shortcode ?? ""}
                     onChange={(e) =>
                       setEditForm((f) => ({ ...f, shortcode: e.target.value }))
@@ -764,7 +858,7 @@ function NetworksTab() {
                     placeholder="USSD code"
                     className="rounded-xl border px-3 py-1.5 text-sm"
                     style={{ borderColor: B.border, color: B.text, width: 100 }}
-                  />
+                  /> */}
                   <div className="ml-auto flex items-center gap-2">
                     <button
                       onClick={cancelEdit}
@@ -859,14 +953,23 @@ function NetworksTab() {
         </Card>
       ))}
       {toast && <Toast msg={toast.msg} type={toast.type} />}
+      <CreateNetworkModal 
+        isOpen={isCreateModalOpen}
+        id={networks?.length.toString()}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(newNetwork) => {
+          // Optimistically append the new network to the list
+          setNetworks((prev) => [...prev, newNetwork].sort((a, b) => a.name.localeCompare(b.name)));
+          showToast(`Successfully added ${newNetwork.name}!`);
+        }}
+      />
     </div>
   );
 }
-
 // ─── Tab: Airtime Types ───────────────────────────────────────────────────────
 
 function AirtimeTypesTab() {
-  const [items, setItems] = useState<AirtimeTypeConfig[]>(AIRTIME_TYPES);
+  const [items, setItems] = useState<AirtimeTypeConfig[]>([]);
   const [networkFilter, setNetworkFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -898,12 +1001,7 @@ function AirtimeTypesTab() {
     showToast(`Airtime type ${val ? "enabled" : "disabled"}.`);
   }
 
-  const AIRTIME_TYPE_OPTIONS: AirtimeType[] = [
-    "VTU",
-    "SNS",
-    "SME",
-    "SHARE_AND_SELL",
-  ];
+ 
 
   return (
     <div className="space-y-4">
@@ -964,12 +1062,7 @@ function AirtimeTypesTab() {
               <thead>
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
                   {[
-                    "Network",
-                    "Type",
-                    "Label",
-                    "Min",
-                    "Max",
-                    "Discount",
+                    "Name",
                     "Status",
                     "",
                   ].map((h) => (
@@ -989,35 +1082,7 @@ function AirtimeTypesTab() {
                     key={item.id}
                     className="group hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-4 py-3">
-                      <NetworkBadge code={item.network} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="rounded-lg px-2 py-0.5 text-xs font-bold"
-                        style={{ background: B.purpleLight, color: B.purple }}
-                      >
-                        {item.type}
-                      </span>
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm font-medium"
-                      style={{ color: B.text }}
-                    >
-                      {item.label}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm"
-                      style={{ color: B.textMuted }}
-                    >
-                      {fmt(item.minAmountKobo)}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm"
-                      style={{ color: B.textMuted }}
-                    >
-                      {fmt(item.maxAmountKobo)}
-                    </td>
+                    
                     <td className="px-4 py-3">
                       <span
                         className="flex items-center gap-1 text-sm font-bold"
@@ -1077,7 +1142,7 @@ function AirtimeTypesTab() {
             setShowModal(false);
           }}
           networks={NETWORKS}
-          typeOptions={AIRTIME_TYPE_OPTIONS}
+          typeOptions={[]}
         />
       )}
 
@@ -3145,12 +3210,6 @@ const TABS: {
     description: "Per-network, per-type discount rates",
   },
   {
-    id: "data-types",
-    label: "Data types",
-    icon: Database,
-    description: "SME, Gifting, Corporate, Direct categories",
-  },
-  {
     id: "data-plans",
     label: "Data plans",
     icon: Package,
@@ -3240,11 +3299,10 @@ export default function AirtimeDataPage() {
       {activeTab === "networks" && <NetworksTab />}
       {activeTab === "airtime-types" && <AirtimeTypesTab />}
       {activeTab === "airtime-discounts" && <AirtimeDiscountsTab />}
-      {activeTab === "data-types" && <DataTypesTab />}
+      {/* {activeTab === "data-types" && <DataTypesTab />} */}
       {activeTab === "data-plans" && <DataPlansTab />}
       {activeTab === "airtime-pin" && <PinTab type="airtime" />}
       {activeTab === "data-pin" && <PinTab type="data" />}
     </div>
   );
 }
-
