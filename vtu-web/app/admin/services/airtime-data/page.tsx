@@ -670,7 +670,7 @@ function NetworksTab() {
     if (!editingId) return;
 
     setSaving(true);
-    await updateNetwork(editForm?.code || '', editForm)
+    await updateNetwork(editForm?.code || "", editForm)
       .then(() => {
         setNetworks((prev) =>
           prev.map((n) => (n.id === editingId ? { ...n, ...editForm } : n)),
@@ -696,19 +696,17 @@ function NetworksTab() {
     );
 
     updateNetwork(id, { [field]: val })
-    .then(() => {
-      showToast(
-        `${field === "isActive" ? "Network" : field === "airtimeEnabled" ? "Airtime" : "Data"} ${val ? "enabled" : "disabled"}.`,
-      );
-    })
-    .catch(() => {
-      setNetworks((prev) =>
-        prev.map((n) => (n.code === id ? { ...n, [field]: !val } : n)),
-      );
-      showToast("Failed to update setting.", "error");
-    })
-
-    
+      .then(() => {
+        showToast(
+          `${field === "isActive" ? "Network" : field === "airtimeEnabled" ? "Airtime" : "Data"} ${val ? "enabled" : "disabled"}.`,
+        );
+      })
+      .catch(() => {
+        setNetworks((prev) =>
+          prev.map((n) => (n.code === id ? { ...n, [field]: !val } : n)),
+        );
+        showToast("Failed to update setting.", "error");
+      });
   }
 
   // Optional: Return a simple loader while fetching initial data so it doesn't look broken
