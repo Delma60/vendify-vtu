@@ -262,3 +262,218 @@ export async function deactivateNetworkType(typeId: string): Promise<void> {
     updatedAt: Timestamp.now()
   });
 }
+
+// ============================================================================
+// AIRTIME DISCOUNTS HELPERS
+// ============================================================================
+
+export interface AirtimeDiscount {
+  id: string;
+  network: "mtn" | "airtel" | "glo" | "9mobile";
+  type: string;
+  label: string;
+  discountPercent: number;
+  minAmountKobo: number;
+  isActive: boolean;
+  validFrom: string;
+  validTo: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string|Timestamp;
+  createdAt?: string|Timestamp;
+  updatedAt?: string|Timestamp;
+}
+
+/**
+ * Retrieves a single airtime discount by its ID.
+ */
+export async function getAirtimeDiscount(id: string): Promise<AirtimeDiscount | null> {
+  const snap = await adminDb.collection('airtime_discounts').doc(id).get();
+  const data = snap.data();
+  
+  // Return null if it doesn't exist or was soft-deleted
+  if (!snap.exists || data?.isDeleted) return null;
+  
+  return data as AirtimeDiscount;
+}
+
+/**
+ * Retrieves all active (non-deleted) airtime discounts.
+ */
+export async function getAllAirtimeDiscounts(): Promise<AirtimeDiscount[]> {
+  const snap = await adminDb.collection('airtime_discounts')
+    .where('isDeleted', '==', false)
+    .get();
+  if(snap.empty) return []
+    
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AirtimeDiscount));
+}
+
+/**
+ * Retrieves discounts associated with a specific network.
+ */
+export async function getAirtimeDiscountsByNetwork(networkId: string): Promise<AirtimeDiscount[]> {
+  const snap = await adminDb.collection('airtime_discounts')
+    .where('network', '==', networkId)
+    .where('isDeleted', '==', false)
+    .get();
+    
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AirtimeDiscount));
+}
+
+/**
+ * Creates a new airtime discount.
+ */
+export async function createAirtimeDiscount(data: Partial<AirtimeDiscount>): Promise<string> {
+  const ref = adminDb.collection('airtime_discounts').doc();
+  
+  await ref.set({
+    id: ref.id,
+    isActive: true,
+    isDeleted: false,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    ...data,
+  });
+  
+  return ref.id;
+}
+
+/**
+ * Updates an existing airtime discount.
+ */
+export async function updateAirtimeDiscount(id: string, data: Partial<AirtimeDiscount>): Promise<void> {
+  const ref = adminDb.collection('airtime_discounts').doc(id);
+  
+  await ref.update({
+    ...data,
+    updatedAt: Timestamp.now(),
+  });
+}
+
+/**
+ * Soft-deletes an airtime discount (Complies with AGENTS.md Rule #8).
+ */
+export async function deleteAirtimeDiscount(id: string): Promise<void> {
+  const ref = adminDb.collection('airtime_discounts').doc(id);
+  
+  await ref.update({
+    isActive: false,
+    isDeleted: true,
+    deletedAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+}
+
+
+
+// ============================================================================
+// PROVIDERS HELPERS
+// ============================================================================
+
+export interface ProviderConfig {
+  id: string;
+  name: string;             // e.g., 'VTPass', 'Simhost NG'
+  code: string;             // e.g., 'vtpass', 'simhost', 'bilal'
+  isActive: boolean;
+  supportsPricePullAPI: boolean;
+  baseUrl?: string;
+  isDeleted?: boolean;
+  deletedAt?: string|Timestamp;
+  createdAt?: string|Timestamp;
+  updatedAt?: string|Timestamp;
+}
+
+/**
+ * Retrieves a single provider configuration by its ID.
+ */
+export async function getProvider(id: string): Promise<ProviderConfig | null> {
+  const snap = await adminDb.collection('providers').doc(id).get();
+  const data = snap.data();
+  
+  // Return null if it doesn't exist or was soft-deleted
+  if (!snap.exists || data?.isDeleted) return null;
+  
+  return data as ProviderConfig;
+}
+
+/**
+ * Retrieves a single provider by its code (e.g., 'vtpass').
+ */
+export async function getProviderByCode(code: string): Promise<ProviderConfig | null> {
+  const snap = await adminDb.collection('providers')
+    .where('code', '==', code)
+    .where('isDeleted', '==', false)
+    .limit(1)
+    .get();
+    
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() } as ProviderConfig;
+}
+
+/**
+ * Retrieves all active (non-deleted) providers.
+ */
+export async function getAllProviders(): Promise<ProviderConfig[]> {
+  const snap = await adminDb.collection('providers')
+    .where('isDeleted', '==', false)
+    .get();
+    
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProviderConfig));
+}
+
+/**
+ * Retrieves only active and enabled providers.
+ */
+export async function getActiveProviders(): Promise<ProviderConfig[]> {
+  const snap = await adminDb.collection('providers')
+    .where('isDeleted', '==', false)
+    .where('isActive', '==', true)
+    .get();
+    
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProviderConfig));
+}
+
+/**
+ * Creates a new provider configuration.
+ */
+export async function createProvider(data: Partial<ProviderConfig>): Promise<string> {
+  const ref = adminDb.collection('providers').doc();
+  
+  await ref.set({
+    id: ref.id,
+    isActive: true,
+    supportsPricePullAPI: data.supportsPricePullAPI ?? false,
+    isDeleted: false,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    ...data,
+  });
+  
+  return ref.id;
+}
+
+/**
+ * Updates an existing provider configuration.
+ */
+export async function updateProvider(id: string, data: Partial<ProviderConfig>): Promise<void> {
+  const ref = adminDb.collection('providers').doc(id);
+  
+  await ref.update({
+    ...data,
+    updatedAt: Timestamp.now(),
+  });
+}
+
+/**
+ * Soft-deletes a provider (Complies with AGENTS.md Rule #8).
+ */
+export async function deleteProvider(id: string): Promise<void> {
+  const ref = adminDb.collection('providers').doc(id);
+  
+  await ref.update({
+    isActive: false,
+    isDeleted: true,
+    deletedAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+}
