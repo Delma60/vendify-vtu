@@ -34,6 +34,7 @@ import {
   Zap,
 } from "lucide-react";
 import { CreateNetworkModal } from "@/components/admin/CreateNetworkModal";
+import { baseUrl, updateNetwork, updateNetworkType } from "@/lib/db/helpers";
 
 // ─── Brand tokens (matching admin layout) ─────────────────────────────────────
 
@@ -61,7 +62,7 @@ const B = {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type NetworkId = "mtn" | "airtel" | "glo" | "9mobile";
-type AirtimeType = "VTU" | "SNS" | "SME" | "SHARE_AND_SELL";
+type AirtimeType = "airtime" | "data" | "cable";
 type DataCategory = "SME" | "Gifting" | "Corporate" | "Direct";
 type TabId =
   | "networks"
@@ -86,13 +87,9 @@ interface Network {
 
 interface AirtimeTypeConfig {
   id: string;
-  network: NetworkId;
   type: AirtimeType;
-  label: string;
+  name: string;
   isActive: boolean;
-  minAmountKobo: number;
-  maxAmountKobo: number;
-  discountPercent: number;
 }
 
 interface AirtimeDiscount {
@@ -186,69 +183,6 @@ const NETWORKS: Network[] = [
     airtimeEnabled: true,
     dataEnabled: false,
     shortcode: "*228#",
-  },
-];
-
-const AIRTIME_TYPES: AirtimeTypeConfig[] = [
-  {
-    id: "at1",
-    network: "mtn",
-    type: "VTU",
-    label: "MTN VTU",
-    isActive: true,
-    minAmountKobo: 5000,
-    maxAmountKobo: 10000000,
-    discountPercent: 3,
-  },
-  {
-    id: "at2",
-    network: "mtn",
-    type: "SNS",
-    label: "MTN Share & Sell",
-    isActive: true,
-    minAmountKobo: 10000,
-    maxAmountKobo: 5000000,
-    discountPercent: 2,
-  },
-  {
-    id: "at3",
-    network: "airtel",
-    type: "VTU",
-    label: "Airtel VTU",
-    isActive: true,
-    minAmountKobo: 5000,
-    maxAmountKobo: 10000000,
-    discountPercent: 3,
-  },
-  {
-    id: "at4",
-    network: "airtel",
-    type: "SNS",
-    label: "Airtel Share & Sell",
-    isActive: false,
-    minAmountKobo: 10000,
-    maxAmountKobo: 5000000,
-    discountPercent: 1.5,
-  },
-  {
-    id: "at5",
-    network: "glo",
-    type: "VTU",
-    label: "Glo VTU",
-    isActive: true,
-    minAmountKobo: 5000,
-    maxAmountKobo: 10000000,
-    discountPercent: 4,
-  },
-  {
-    id: "at6",
-    network: "9mobile",
-    type: "VTU",
-    label: "9mobile VTU",
-    isActive: true,
-    minAmountKobo: 5000,
-    maxAmountKobo: 5000000,
-    discountPercent: 2,
   },
 ];
 
@@ -736,29 +670,18 @@ function NetworksTab() {
     if (!editingId) return;
 
     setSaving(true);
-    try {
-      const response = await fetch(`/api/v1/networks/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      });
+    await updateNetwork(editForm?.code || '', editForm)
+      .then(() => {
+        setNetworks((prev) =>
+          prev.map((n) => (n.id === editingId ? { ...n, ...editForm } : n)),
+        );
 
-      if (!response.ok) {
-        throw new Error("Failed to update network");
-      }
-
-      setNetworks((prev) =>
-        prev.map((n) => (n.id === editingId ? { ...n, ...editForm } : n)),
-      );
-
-      showToast("Network updated.");
-      setEditingId(null);
-      setEditForm({});
-    } catch (error) {
-      showToast("Failed to save changes. Try again.", "error");
-    } finally {
-      setSaving(false);
-    }
+        showToast("Network updated.");
+        setEditingId(null);
+        setEditForm({});
+      })
+      .catch(() => showToast("Failed to save changes. Try again.", "error"))
+      .finally(() => setSaving(false));
   }
 
   // 3. UPDATE: Toggle specific booleans instantly
@@ -769,30 +692,23 @@ function NetworksTab() {
   ) {
     // Optimistic UI Update: Change it immediately so it feels snappy
     setNetworks((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, [field]: val } : n)),
+      prev.map((n) => (n.code === id ? { ...n, [field]: val } : n)),
     );
 
-    try {
-      const response = await fetch(`/api/v1/networks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: val }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to toggle");
-      }
-
+    updateNetwork(id, { [field]: val })
+    .then(() => {
       showToast(
         `${field === "isActive" ? "Network" : field === "airtimeEnabled" ? "Airtime" : "Data"} ${val ? "enabled" : "disabled"}.`,
       );
-    } catch (error) {
-      // Revert the UI if the API call fails
+    })
+    .catch(() => {
       setNetworks((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, [field]: !val } : n)),
+        prev.map((n) => (n.code === id ? { ...n, [field]: !val } : n)),
       );
       showToast("Failed to update setting.", "error");
-    }
+    })
+
+    
   }
 
   // Optional: Return a simple loader while fetching initial data so it doesn't look broken
@@ -808,25 +724,29 @@ function NetworksTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold" style={{ color: B.text }}>Active Networks</h2>
-          <p className="text-sm" style={{ color: B.textMuted }}>Manage your supported telecom, cable, and electricity providers.</p>
+          <h2 className="text-lg font-bold" style={{ color: B.text }}>
+            Active Networks
+          </h2>
+          <p className="text-sm" style={{ color: B.textMuted }}>
+            Manage your supported telecom, cable, and electricity providers.
+          </p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
           className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
-          style={{ background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})` }}
+          style={{
+            background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})`,
+          }}
         >
           <Plus size={16} />
           Add Network
         </button>
       </div>
-      {
-        networks.length === 0 && (
-          <div className="">
-            <EmptyState title="No networks found" icon={Network} />
-          </div>
-        )
-      }
+      {networks.length === 0 && (
+        <div className="">
+          <EmptyState title="No networks found" icon={Network} />
+        </div>
+      )}
       {networks.map((net) => (
         <Card key={net.id} className="overflow-hidden">
           <div className="p-5">
@@ -909,7 +829,7 @@ function NetworksTab() {
                       <Toggle
                         checked={net.airtimeEnabled}
                         onChange={(v) =>
-                          toggleNetwork(net.id, "airtimeEnabled", v)
+                          toggleNetwork(net.code, "airtimeEnabled", v)
                         }
                       />
                     </div>
@@ -926,7 +846,7 @@ function NetworksTab() {
                       <Toggle
                         checked={net.dataEnabled}
                         onChange={(v) =>
-                          toggleNetwork(net.id, "dataEnabled", v)
+                          toggleNetwork(net.code, "dataEnabled", v)
                         }
                       />
                     </div>
@@ -936,7 +856,7 @@ function NetworksTab() {
                     <StatusBadge active={net.isActive} />
                     <Toggle
                       checked={net.isActive}
-                      onChange={(v) => toggleNetwork(net.id, "isActive", v)}
+                      onChange={(v) => toggleNetwork(net.code, "isActive", v)}
                     />
                     <button
                       onClick={() => startEdit(net)}
@@ -953,13 +873,15 @@ function NetworksTab() {
         </Card>
       ))}
       {toast && <Toast msg={toast.msg} type={toast.type} />}
-      <CreateNetworkModal 
+      <CreateNetworkModal
         isOpen={isCreateModalOpen}
         id={networks?.length.toString()}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(newNetwork) => {
           // Optimistically append the new network to the list
-          setNetworks((prev) => [...prev, newNetwork].sort((a, b) => a.name.localeCompare(b.name)));
+          setNetworks((prev) =>
+            [...prev, newNetwork].sort((a, b) => a.name.localeCompare(b.name)),
+          );
           showToast(`Successfully added ${newNetwork.name}!`);
         }}
       />
@@ -987,21 +909,33 @@ function AirtimeTypesTab() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  useEffect(() => {
+    async function fetchNetworkType() {
+      try {
+        const res = await fetch(`/api/v1/networks/types`);
+        const { data } = await res.json();
+        console.log({ data });
+        setItems(data);
+      } catch (error) {}
+    }
+    fetchNetworkType();
+  }, []);
+
   const filtered = items.filter((i) => {
-    if (networkFilter !== "all" && i.network !== networkFilter) return false;
-    if (search && !i.label.toLowerCase().includes(search.toLowerCase()))
+    if (search && !i.name.toLowerCase().includes(search.toLowerCase()))
       return false;
     return true;
   });
 
   function toggleItem(id: string, val: boolean) {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, isActive: val } : i)),
-    );
-    showToast(`Airtime type ${val ? "enabled" : "disabled"}.`);
+    console.log({ id });
+    updateNetworkType(id, { isActive: val }).then(() => {
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, isActive: val } : i)),
+      );
+      showToast(`Airtime type ${val ? "enabled" : "disabled"}.`);
+    });
   }
-
- 
 
   return (
     <div className="space-y-4">
@@ -1061,11 +995,7 @@ function AirtimeTypesTab() {
             <table className="w-full min-w-[640px]">
               <thead>
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
-                  {[
-                    "Name",
-                    "Status",
-                    "",
-                  ].map((h) => (
+                  {["Name", "Type", "Status", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide"
@@ -1082,15 +1012,18 @@ function AirtimeTypesTab() {
                     key={item.id}
                     className="group hover:bg-gray-50 transition-colors"
                   >
-                    
-                    <td className="px-4 py-3">
-                      <span
-                        className="flex items-center gap-1 text-sm font-bold"
-                        style={{ color: B.green }}
+                    <td className="px-4 py-3 ">
+                      <div
+                        className="text-sm font-medium"
+                        style={{ color: B.text }}
                       >
-                        <TrendingUp size={12} />
-                        {item.discountPercent}%
-                      </span>
+                        {item.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        {item.type}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -1166,20 +1099,20 @@ function AirtimeTypeModal({
 }) {
   const [form, setForm] = useState<Partial<AirtimeTypeConfig>>(
     item ?? {
-      network: "mtn",
-      type: "VTU",
-      label: "",
+      type: "airtime",
+      name: "",
       isActive: true,
-      minAmountKobo: 5000,
-      maxAmountKobo: 10000000,
-      discountPercent: 0,
     },
   );
   const [saving, setSaving] = useState(false);
 
   async function submit() {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
+    await fetch("/api/v1/networks/types", {
+      method: item ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
     onSave(form);
     setSaving(false);
   }
@@ -1199,138 +1132,47 @@ function AirtimeTypeModal({
         </h2>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                className="mb-1 block text-xs font-semibold"
-                style={{ color: B.textMuted }}
-              >
-                Network
-              </label>
-              <select
-                value={form.network}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    network: e.target.value as NetworkId,
-                  }))
-                }
-                className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: B.border, color: B.text }}
-              >
-                {networks.map((n) => (
-                  <option key={n.code} value={n.code}>
-                    {n.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                className="mb-1 block text-xs font-semibold"
-                style={{ color: B.textMuted }}
-              >
-                Type
-              </label>
-              <select
-                value={form.type}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    type: e.target.value as AirtimeType,
-                  }))
-                }
-                className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: B.border, color: B.text }}
-              >
-                {typeOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
           <div>
             <label
               className="mb-1 block text-xs font-semibold"
               style={{ color: B.textMuted }}
             >
-              Label
+              Name
             </label>
             <input
-              value={form.label ?? ""}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, label: e.target.value }))
-              }
+              value={form.name ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="e.g. MTN VTU Standard"
               className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
               style={{ borderColor: B.border, color: B.text }}
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label
                 className="mb-1 block text-xs font-semibold"
                 style={{ color: B.textMuted }}
               >
-                Min (₦)
+                For Service
               </label>
-              <input
-                type="number"
-                value={(form.minAmountKobo ?? 0) / 100}
+              <select
+                value={form.type}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    minAmountKobo: Number(e.target.value) * 100,
+                    type: e.target.value as any,
                   }))
                 }
                 className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
                 style={{ borderColor: B.border, color: B.text }}
-              />
-            </div>
-            <div>
-              <label
-                className="mb-1 block text-xs font-semibold"
-                style={{ color: B.textMuted }}
               >
-                Max (₦)
-              </label>
-              <input
-                type="number"
-                value={(form.maxAmountKobo ?? 0) / 100}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    maxAmountKobo: Number(e.target.value) * 100,
-                  }))
-                }
-                className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: B.border, color: B.text }}
-              />
-            </div>
-            <div>
-              <label
-                className="mb-1 block text-xs font-semibold"
-                style={{ color: B.textMuted }}
-              >
-                Discount %
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                value={form.discountPercent ?? 0}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    discountPercent: Number(e.target.value),
-                  }))
-                }
-                className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: B.border, color: B.text }}
-              />
+                {[{ name: "airtime" }, { name: "data" }].map((n) => (
+                  <option key={n.name} value={n.name}>
+                    {n.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -1358,7 +1200,7 @@ function AirtimeTypeModal({
           </button>
           <button
             onClick={submit}
-            disabled={saving || !form.label}
+            disabled={saving || !form.name}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             style={{
               background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})`,
@@ -1602,13 +1444,9 @@ function DiscountModal({
 }) {
   const [form, setForm] = useState<Partial<AirtimeDiscount>>(
     item ?? {
-      network: "mtn",
-      type: "VTU",
-      label: "",
-      discountPercent: 3,
-      minAmountKobo: 5000,
+      type: "airtime",
+      name: "",
       isActive: true,
-      validTo: null,
     },
   );
   const [saving, setSaving] = useState(false);
@@ -1679,13 +1517,11 @@ function DiscountModal({
                 className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
                 style={{ borderColor: B.border, color: B.text }}
               >
-                {(["VTU", "SNS", "SME", "SHARE_AND_SELL"] as AirtimeType[]).map(
-                  (t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ),
-                )}
+                {([] as AirtimeType[]).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

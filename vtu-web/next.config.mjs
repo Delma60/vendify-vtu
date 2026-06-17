@@ -2,9 +2,7 @@ import path from "path";
 
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    appDir: true
-  },
+  
   images: {
     remotePatterns: [
       {

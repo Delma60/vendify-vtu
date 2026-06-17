@@ -307,3 +307,11 @@ export interface Network {
   airtimeEnabled: boolean;
   dataEnabled: boolean;
 }
+
+export interface NetworkType {
+  id:string;
+  name:string;
+  type: 'aritime'|'data' | 'cable';
+  isActive: boolean
+  
+}
