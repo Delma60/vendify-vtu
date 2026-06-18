@@ -3897,7 +3897,7 @@ function AirtimeDiscountsTab() {
   }, []);
 
   const filtered = items?.filter((i) =>
-    networkFilter === "all" ? true : i.network === networkFilter,
+    networkFilter === "all" ? true : i.network_id === networkFilter,
   );
 
   function toggleItem(id: string, val: boolean) {
@@ -3984,7 +3984,7 @@ function AirtimeDiscountsTab() {
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.text }}
                       >
-                        {item.network} | {item.type}
+                        {item.network?.name} | {item.type}
                       </td>
                       <td className="px-4 py-3 text-sm font-bold text-gray-700">
                         {fmt(item.minAmountKobo)} | {fmt(item.maxAmountKobo)}

@@ -317,6 +317,7 @@ export type PermissionGroups = Record<string, string[]>;
 export interface Network {
   id: string;
   name: string;
+  code:string;
   shortcode: string;
   type: 'telecom' | 'cable' | 'electricity';
   color: string;
@@ -339,4 +340,42 @@ export interface AirtimeTypeConfig {
   type: AirtimeType;
   name: string;
   isActive: boolean;
+}
+
+
+export interface TicketTier {
+  id: string;
+  name: string;          // e.g., 'Regular', 'VIP', 'VVIP'
+  price: number;         // ALWAYS IN KOBO
+  capacity: number;      // Maximum tickets available for this tier
+  sold: number;          // Number of tickets sold
+}
+
+export interface PlatformEvent {
+  id: string;
+  name: string;
+  description: string;
+  date: Timestamp;
+  location: string;
+  isVirtual: boolean;
+  bannerUrl: string | null;
+  organizerId: string;   // Could be the platform admin or a specific user/vendor
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  ticketTiers: TicketTier[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  isDeleted: boolean;    // Rule 8: Soft delete
+  deletedAt?: Timestamp;
+}
+
+export interface TicketPurchase {
+  id: string;
+  eventId: string;
+  tierId: string;
+  userId: string;
+  transactionId: string; // FK to transactions collection
+  qrCodeData: string;    // Secure payload for QR scanner (e.g., hashed signature)
+  status: 'valid' | 'used' | 'cancelled';
+  purchasedAt: Timestamp;
+  usedAt: Timestamp | null;
 }

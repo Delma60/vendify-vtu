@@ -1,11 +1,8 @@
-import React from 'react'
+import { AirtimeFormContent } from "@/components/services/airtime";
+import { getAllNetworks } from "@/lib/db/helpers";
+import { serializeData } from "@/lib/utils";
 
-const Page = () => {
-  return (
-    <div>
-      .bg-white.rounded-lg.shadow-md.p-5.
-    </div>
-  )
+export default async function AirtimePage() {
+  const nets = (await getAllNetworks()).filter((nt) => nt.type === "telecom");
+  return <AirtimeFormContent networks={serializeData(nets)} />;
 }
-
-export default Page

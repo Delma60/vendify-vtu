@@ -287,7 +287,8 @@ export async function deactivateNetworkType(typeId: string): Promise<void> {
 //   }
 export interface AirtimeDiscount {
   id: string;
-  network: string;
+  network_id: string;
+  network?: Network|null;
   type: string;
   minAmountKobo: number;
   maxAmountKobo: number;

@@ -20,7 +20,7 @@ const AirtimeSchema = z.object({
     .string()
     .regex(/^\+?[0-9]{10,14}$/, 'Invalid phone number'),
   network: z.enum(['mtn', 'airtel', 'glo', '9mobile'], {
-    errorMap: () => ({ message: 'network must be mtn, airtel, glo, or 9mobile' }),
+    message:"network must be mtn, airtel, glo, or 9mobile"
   }),
   amount: z
     .number()
@@ -175,26 +175,33 @@ export async function POST(request: NextRequest) {
  * Called by the frontend checkout form before the user confirms.
  */
 export async function GET(request: NextRequest) {
-  const session = await getSession();
-  if (!session) return err('Unauthorized', 401);
+  try{
+    const session = await getSession();
+    if (!session) return err('Unauthorized', 401);
+  
+    const amountRaw = new URL(request.url).searchParams.get('amount');
+    const network = new URL(request.url).searchParams.get('network') as string;
+    const amount = amountRaw ? parseInt(amountRaw, 10) : null;
+  
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return err('Provide a valid amount in kobo as a query param: ?amount=50000', 422);
+    }
+  
+    const fee = await calculateFee('airtime', amount, network);
+  
+    return ok({
+      amountKobo: amount,
+      platformFeeKobo: fee.platformFeeKobo,
+      vatKobo: fee.vatKobo,
+      totalFeeKobo: fee.totalFeeKobo,
+      totalChargeKobo: fee.totalChargeKobo,
+      breakdown: fee.feeBreakdown,
+    });
 
-  const amountRaw = new URL(request.url).searchParams.get('amount');
-  const amount = amountRaw ? parseInt(amountRaw, 10) : null;
-
-  if (!amount || isNaN(amount) || amount <= 0) {
-    return err('Provide a valid amount in kobo as a query param: ?amount=50000', 422);
+  }catch(e){
+    console.log(e)
+    return err("internal error occured")
   }
-
-  const fee = await calculateFee('airtime', amount);
-
-  return ok({
-    amountKobo: amount,
-    platformFeeKobo: fee.platformFeeKobo,
-    vatKobo: fee.vatKobo,
-    totalFeeKobo: fee.totalFeeKobo,
-    totalChargeKobo: fee.totalChargeKobo,
-    breakdown: fee.feeBreakdown,
-  });
 }
 
 // ─── Provider call (wraps router) ─────────────────────────────────────────────

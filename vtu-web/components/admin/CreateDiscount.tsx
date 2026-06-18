@@ -15,7 +15,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { Network, NetworkType, Role } from "@/types";
-import { AirtimeDiscount, createAirtimeDiscount, updateAirtimeDiscount } from "@/lib/db/helpers";
+import {
+  AirtimeDiscount,
+  createAirtimeDiscount,
+  updateAirtimeDiscount,
+} from "@/lib/db/helpers";
 
 const B = {
   orange: "#F97316",
@@ -90,7 +94,7 @@ interface CreateDiscountProps {
   networks: Network[];
   networkTypes: NetworkType[];
   providers: any[];
-  discount?:AirtimeDiscount
+  discount?: AirtimeDiscount;
 }
 
 const DiscountForm = ({
@@ -98,36 +102,40 @@ const DiscountForm = ({
   networks,
   roles,
   providers,
-  discount
+  discount,
 }: CreateDiscountProps) => {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
 
   // Form State
-  const [formData, setFormData] = useState(discount ?? {
-    network: "mtn",
-    type: "VTU",
-    provider: "vtpass",
-    isActive: true,
-    minAmount: "50",
-    maxAmount: "5000",
-    roleDiscounts: {
-      customer: "2.0",
-      agent: "2.5",
-      reseller: "3.0",
-      api: "3.5",
-    } as Record<string, string>,
-  });
+  const [formData, setFormData] = useState(
+    discount ?? {
+      network_id: 0,
+      type: "VTU",
+      provider: "vtpass",
+      isActive: true,
+      minAmount: "50",
+      maxAmount: "5000",
+      roleDiscounts: {
+        customer: "2.0",
+        agent: "2.5",
+        reseller: "3.0",
+        api: "3.5",
+      } as Record<string, string>,
+    },
+  );
 
   const handleRoleDiscountChange = (roleId: string, value: string) => {
-   
-    setFormData((prev) => ({
-      ...prev,
-      roleDiscounts: {
-        ...prev.roleDiscounts,
-        [roleId]: value,
-      },
-    } as any));
+    setFormData(
+      (prev) =>
+        ({
+          ...prev,
+          roleDiscounts: {
+            ...prev.roleDiscounts,
+            [roleId]: value,
+          },
+        }) as any,
+    );
   };
 
   useEffect(() => {
@@ -136,31 +144,38 @@ const DiscountForm = ({
 
   const handleSave = async () => {
     setIsSaving(true);
-    try{
+    try {
       const params = {
-          network: formData.network,
-          type: formData.type,
-          provider: formData.provider,
-          isActive: formData.isActive,
-          minAmountKobo: parseFloat((formData as any).minAmount) * 100,
-          maxAmountKobo: parseFloat((formData as any).maxAmount) * 100,
-          roleDiscounts: Object.fromEntries(
-            Object.entries(formData.roleDiscounts).map(([key, value]) => [key, parseFloat(value)])
-          ),
-        }
-      if(discount){
+        network_id: formData.network_id,
+        network: null,
+        type: formData.type,
+        provider: formData.provider,
+        isActive: formData.isActive,
+        minAmountKobo: parseFloat((formData as any).minAmount) * 100,
+        maxAmountKobo: parseFloat((formData as any).maxAmount) * 100,
+        roleDiscounts: Object.fromEntries(
+          Object.entries(formData.roleDiscounts).map(([key, value]) => [
+            key,
+            parseFloat(value),
+          ]),
+        ),
+      };
+      console.log(params)
+      if (discount) {
+        await updateAirtimeDiscount(discount?.id, params);
+      } else {
         await createAirtimeDiscount(params);
-      }else{
-        await updateAirtimeDiscount(discount?.id, params)
       }
-  
+
       setTimeout(() => {
         setIsSaving(false);
         router.push("/admin/services/airtime-data?tab=airtime-discounts");
       }, 1000);
-    }
-    catch{
-      alert("error")
+    } catch (e) {
+      console.log(e);
+      alert("error");
+    } finally {
+      setIsSaving(false);
     }
     // TODO: Wire this up to the createAirtimeDiscount helper
   };
@@ -216,9 +231,9 @@ const DiscountForm = ({
                 Select Network
               </label>
               <select
-                value={formData.network}
+                value={formData.network_id}
                 onChange={(e) =>
-                  setFormData({ ...formData, network: e.target.value })
+                  setFormData({ ...formData, network_id: e.target.value })
                 }
                 className="w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500/20"
                 style={{
@@ -228,8 +243,8 @@ const DiscountForm = ({
                 }}
               >
                 {networks.map((net) => (
-                  <option key={net.id} value={net.id}>
-                    {net.name}
+                  <option key={net.id} value={parseFloat(net.id)}>
+                    {net.name}{net.id}
                   </option>
                 ))}
               </select>
@@ -374,7 +389,11 @@ const DiscountForm = ({
                 type="number"
                 value={(formData as any).minAmount}
                 onChange={(e) =>
-                  setFormData({ ...formData, minAmount: e.target.value, minAmountKobo: parseFloat(e.target.value) * 100 })
+                  setFormData({
+                    ...formData,
+                    minAmount: e.target.value,
+                    minAmountKobo: parseFloat(e.target.value) * 100,
+                  })
                 }
                 className="w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500/20"
                 style={{
@@ -385,7 +404,7 @@ const DiscountForm = ({
                 placeholder="e.g. 50"
               />
             </div>
-             <div className="space-y-1.5 pt-2">
+            <div className="space-y-1.5 pt-2">
               <label
                 className="text-xs font-bold uppercase tracking-wider"
                 style={{ color: B.textMuted }}
@@ -396,7 +415,11 @@ const DiscountForm = ({
                 type="number"
                 value={(formData as any).maxAmount}
                 onChange={(e) =>
-                  setFormData({ ...formData, maxAmount: e.target.value, maxAmountKobo: parseFloat(e.target.value) * 100 })
+                  setFormData({
+                    ...formData,
+                    maxAmount: e.target.value,
+                    maxAmountKobo: parseFloat(e.target.value) * 100,
+                  })
                 }
                 className="w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500/20"
                 style={{

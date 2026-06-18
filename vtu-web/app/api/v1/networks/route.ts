@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, name, type, isActive, id } = body;
+    const { code, name, type, isActive, id, color, logoLetter } = body;
 
     // Validation
     if (!code || !name || !type) {
@@ -52,13 +52,15 @@ export async function POST(request: NextRequest) {
       id: id.toLowerCase().trim(),
       code: code.toLowerCase().trim(),
       name: name.trim(),
+      logoLetter: logoLetter.trim(),
+      color: color.trim(),
       type: type.toLowerCase().trim(), // e.g., 'telecom', 'cable', 'electricity'
       isActive: isActive ?? true,
       createdAt: new Date().toISOString()
     };
 
     // Use the code as the document ID for cleaner organization
-    await adminDb.collection('networks').doc(networkData.code).set(networkData);
+    await adminDb.collection('networks').doc(networkData.id).set(networkData);
 
     return ok({ network: networkData }, 'Network created successfully', 201);
   } catch (error: any) {

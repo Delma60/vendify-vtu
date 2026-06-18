@@ -9,7 +9,7 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
         <div className="block md:hidden">
           <BalanceCard />
         </div>
-        <div className="py-5">{children}</div>
+        <div className="md:pt-0 py-5">{children}</div>
       </div>
       <div className="col-span-1 md:col-span-1 hidden md:block">
         <BalanceCard />

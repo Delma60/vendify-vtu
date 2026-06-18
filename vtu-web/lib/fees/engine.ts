@@ -3,6 +3,7 @@
 
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getNetworkTypesByNetwork } from "@/lib/db/helpers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,9 +100,12 @@ export async function listFeeConfigs(includeInactive = false): Promise<ServiceFe
  */
 export async function calculateFee(
   service: string,
-  amountKobo: number
+  amountKobo: number,
+  network:string
 ): Promise<FeeCalculationResult> {
   const config = await getFeeConfigForService(service);
+  const nt = await getNetworkTypesByNetwork(network)
+  console.log({ nt })
 
   let platformFeeKobo = 0;
 
