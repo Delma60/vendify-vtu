@@ -50,6 +50,7 @@ export default function LoginPage() {
           setRequires2FA(true);
           return;
         }
+        console.log(result)
         throw new Error(result.message || 'Incorrect email or password.');
       }
 

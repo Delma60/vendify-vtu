@@ -3032,11 +3032,13 @@ import {
   deleteAirtimeDiscount,
   updateNetwork,
   updateNetworkType,
+  updateDataPlan,
+  
 } from "@/lib/db/helpers";
-import { getAllDataPlans, getDataPlans } from "@/lib/data/engine";
+import { getAllDataPlans } from "@/lib/data/engine";
 import { Toggle } from "@/components/ui/toggle";
 import { NetworkTypeModal } from "@/components/admin/CreateNetworkTypeModal";
-import { DataPlan } from "@/types";
+import { DataPlan, NetworkType } from "@/types";
 
 // ─── Brand tokens (matching admin layout) ─────────────────────────────────────
 
@@ -3668,7 +3670,7 @@ function NetworkTypesTab() {
   }
 
   useEffect(() => {
-    (async function() {
+    (async function () {
       try {
         const res = await fetch(`/api/v1/networks/types`);
         const { data } = await res.json();
@@ -3678,7 +3680,7 @@ function NetworkTypesTab() {
       } finally {
         setLoading(false);
       }
-    })()
+    })();
   }, []);
 
   const filtered = items?.filter((i) => {
@@ -3745,8 +3747,8 @@ function NetworkTypesTab() {
         </select>
         <button
           onClick={() => {
-             setShowModal(true)
-             setEditItem(null)
+            setShowModal(true);
+            setEditItem(null);
           }}
           // href="/admin/services/airtime-data/network-types/new"
           className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
@@ -3816,7 +3818,7 @@ function NetworkTypesTab() {
                       <button
                         onClick={() => {
                           setShowModal(true);
-                          setEditItem(item)
+                          setEditItem(item);
                         }}
                         // href={`/admin/services/airtime-data/network-types/${item.id}`}
                         className="inline-flex rounded-lg p-1.5 transition hover:bg-gray-200"
@@ -4054,9 +4056,7 @@ function DataPlansTab() {
     (async () => {
       const res = await fetch("/api/internal/data-plans");
       const _res = await res.json();
-      const data = _res.data
-      console.log(_res);
-
+      const data = _res.data;
 
       setPlans(data);
     })();
@@ -4064,10 +4064,12 @@ function DataPlansTab() {
 
   const filtered = plans?.filter((p) => {
     if (networkFilter !== "all" && p.network !== networkFilter) return false;
-    if (catFilter !== "all" && p.type !== catFilter) return false;
+    if (catFilter !== "all" && p.planType !== catFilter) return false;
     if (
       search &&
-      !p.name.toLowerCase().includes(search.toLowerCase()) &&
+      !`${p.plan.value ?? ""}${p.plan.unit ?? ""}`
+        .toLowerCase()
+        .includes(search.toLowerCase()) &&
       !p.size.toLowerCase().includes(search.toLowerCase())
     )
       return false;
@@ -4200,12 +4202,8 @@ function DataPlansTab() {
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
                   {[
                     "Network|Data Type",
-                    "Category",
-                    "Plan",
-                    "Size",
-                    "Validity",
+                    "Plan|Validity",
                     "Cost",
-                    "Sell price",
                     "Status",
                     "",
                   ].map((h) => (
@@ -4221,143 +4219,50 @@ function DataPlansTab() {
               </thead>
               <tbody className="divide-y" style={{ borderColor: B.border }}>
                 {filtered?.map((plan) => {
-                  const margin = marginPct(
-                    plan?.costPriceKobo,
-                    plan?.sellPriceKobo,
-                  );
-                  const marginBreach =
-                    plan?.costPriceKobo > plan?.sellPriceKobo;
-
                   return (
                     <tr
                       key={plan?.id}
                       className="group hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-4 py-3">
-                        <NetworkBadge code={plan?.network} />|{plan?.type}
+                      <td className="px-4 py-3 space-y-1 ">
+                        <NetworkBadge code={plan?.network} />|
+                        {(plan?.planType as NetworkType)?.name}
                       </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className="rounded-md px-1.5 py-0.5 text-[11px] font-bold"
-                          style={{ background: B.blueLight, color: B.blue }}
-                        >
-                          {plan?.category}
-                        </span>
-                      </td>
-                      
+
                       <td
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.orange }}
                       >
-                        {plan?.size}
+                        {plan?.plan?.value || ""}
+                        {plan?.plan?.unit || ""}|{plan?.validity}
                       </td>
                       <td
                         className="px-4 py-3 text-xs"
                         style={{ color: B.textMuted }}
                       >
-                        {plan?.validity}
+                        ₦{plan?.provider?.costPrice}
                       </td>
-                      <td
-                        className="px-4 py-3 text-sm"
-                        style={{ color: B.textMuted }}
-                      >
-                        {plan?.costPriceKobo ? fmt(plan?.costPriceKobo) : "—"}
-                      </td>
-                      {/* Inline sell price editor */}
-                      <td className="px-4 py-3">
-                        {editingPriceId === plan?.id ? (
-                          <div className="flex items-center gap-1">
-                            <span
-                              className="text-xs"
-                              style={{ color: B.textFaint }}
-                            >
-                              ₦
-                            </span>
-                            <input
-                              autoFocus
-                              type="number"
-                              value={editingPrice}
-                              onChange={(e) => setEditingPrice(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") savePrice(plan?.id);
-                                if (e.key === "Escape") setEditingPriceId(null);
-                              }}
-                              className="w-20 rounded-lg border px-1.5 py-1 text-sm font-bold outline-none"
-                              style={{ borderColor: B.orange }}
-                            />
-                            <button
-                              onClick={() => savePrice(plan?.id)}
-                              className="flex h-6 w-6 items-center justify-center rounded-lg"
-                              style={{ background: B.green, color: "#fff" }}
-                            >
-                              <Check size={11} />
-                            </button>
-                            <button
-                              onClick={() => setEditingPriceId(null)}
-                              className="flex h-6 w-6 items-center justify-center rounded-lg"
-                              style={{ background: B.redLight, color: B.red }}
-                            >
-                              <X size={11} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="text-sm font-bold"
-                              style={{ color: B.text }}
-                            >
-                              {fmt(plan?.sellPriceKobo)}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setEditingPriceId(plan?.id);
-                                setEditingPrice(
-                                  String(plan?.sellPriceKobo / 100),
-                                );
-                              }}
-                              className="rounded-md p-1 opacity-0 transition hover:bg-gray-100 group-hover:opacity-100"
-                              style={{ color: B.textFaint }}
-                            >
-                              <Edit2 size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {margin !== null ? (
-                          <span
-                            className="rounded-lg px-2 py-0.5 text-xs font-bold"
-                            style={{
-                              background: marginBreach
-                                ? B.redLight
-                                : B.greenLight,
-                              color: marginBreach ? B.red : B.green,
-                            }}
-                          >
-                            {marginBreach ? "−" : "+"}
-                            {Math.abs(Number(margin))}%
-                          </span>
-                        ) : (
-                          <span
-                            className="text-xs italic"
-                            style={{ color: B.textFaint }}
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
+
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <StatusBadge active={plan?.isActive} />
                           <Toggle
                             checked={plan?.isActive}
                             onChange={(v) => {
-                              setPlans((prev) =>
-                                prev.map((p) =>
-                                  p.id === plan?.id ? { ...p, isActive: v } : p,
-                                ),
-                              );
-                              showToast(`Plan ${v ? "enabled" : "disabled"}.`);
+                              updateDataPlan(plan?.id as string, {
+                                isActive: v,
+                              }).then(() => {
+                                setPlans((prev) =>
+                                  prev.map((p) =>
+                                    p.id === plan?.id
+                                      ? { ...p, isActive: v }
+                                      : p,
+                                  ),
+                                );
+                                showToast(
+                                  `Plan ${v ? "enabled" : "disabled"}.`,
+                                );
+                              });
                             }}
                           />
                         </div>
@@ -4370,6 +4275,17 @@ function DataPlansTab() {
                         >
                           <Edit2 size={13} />
                         </Link>
+
+                        <button
+                          // onClick={() => {
+                          //   deleteDataPlan(plan?.id).then(() => {
+                          //     showToast(`Plan deleted successfully`);
+                          //   });
+                          // }}
+                          className="inline-flex rounded-lg p-1.5 text-red-600 hover:text-red-800 transition hover:bg-red-200"
+                        >
+                          <Trash2 size={13} className="" />
+                        </button>
                       </td>
                     </tr>
                   );

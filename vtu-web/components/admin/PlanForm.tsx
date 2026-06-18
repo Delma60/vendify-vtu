@@ -34,8 +34,8 @@ const B = {
 // ─── ZOD VALIDATION SCHEMA ──────────────────────────────────────────────────
 const planSchema = z.object({
   network: z.string().min(1, "Network is required"),
-  planType:z.string(),
-  name: z.string().min(1, "Plan name is required"),
+  planType: z.string(),
+  // name: z.string().min(1, "Plan name is required"),
   sizeValue: z.coerce
     .number({ message: "Invalid size" })
     .positive("Must be > 0"),
@@ -135,12 +135,8 @@ const PlanForm = ({
 
   // Parse existing size (e.g., "500MB" -> "500" and "MB")
   const defaultSizeMatch = plan?.size?.match(/^(\d+(?:\.\d+)?)\s*(MB|GB|TB)$/i);
-  const [sizeValue, setSizeValue] = useState(
-    defaultSizeMatch ? defaultSizeMatch[1] : "",
-  );
-  const [sizeUnit, setSizeUnit] = useState(
-    defaultSizeMatch ? defaultSizeMatch[2].toUpperCase() : "GB",
-  );
+  const [sizeValue, setSizeValue] = useState(plan?.plan.value);
+  const [sizeUnit, setSizeUnit] = useState(plan?.plan?.unit ?? "");
 
   // General price handling
   const [priceInNaira, setPriceInNaira] = useState(
@@ -168,7 +164,7 @@ const PlanForm = ({
     plan ?? {
       network: networks[0]?.id || "",
       planType: networkTypes[0]?.id || "",
-      
+
       name: "",
       validity: "30 Days",
       provider: {
@@ -219,6 +215,7 @@ const PlanForm = ({
     if (!validation.success) {
       const formattedErrors: Record<string, string> = {};
       validation.error.issues.forEach((issue) => {
+        console.log(issue);
         formattedErrors[issue.path.join(".")] = issue.message;
       });
       setErrors(formattedErrors);
@@ -230,7 +227,10 @@ const PlanForm = ({
     const validData = validation.data;
     const submissionParams: any = {
       ...formData,
-      size: `${validData.sizeValue}${validData.sizeUnit}`,
+      plan: {
+        value: validData.sizeValue,
+        unit: validData.sizeUnit,
+      },
       priceInKobo: Math.round(validData.priceInNaira * 100),
       provider: {
         id: validData.provider.id,
@@ -358,43 +358,20 @@ const PlanForm = ({
               </div>
             </div>
 
-            <div className="space-y-1.5 pt-2">
-              <label
-                className="text-xs font-bold uppercase tracking-wider"
-                style={{ color: B.textMuted }}
-              >
-                Plan Name
-              </label>
-              <input
-                type="text"
-                value={formData.name || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500/20"
-                style={{
-                  borderColor: errors.name ? B.red : B.border,
-                  color: B.text,
-                  background: B.surface,
-                }}
-                placeholder="e.g. 1GB SME"
-              />
-              <ErrorText error={errors.name} />
-            </div>
-
             <div className="flex gap-4 pt-2">
               <div className="flex-[2] space-y-1.5">
                 <label
                   className="text-xs font-bold uppercase tracking-wider"
                   style={{ color: B.textMuted }}
                 >
-                  Data Size
+                  Plan
                 </label>
                 <div className="flex">
                   <input
                     type="number"
                     step="0.1"
-                    value={sizeValue}
+                    value={sizeValue ?? plan?.plan?.value}
+                    defaultValue={plan?.plan.unit || undefined}
                     onChange={(e) => setSizeValue(e.target.value)}
                     className="w-full rounded-l-xl border border-r-0 px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500/20"
                     style={{
@@ -404,8 +381,10 @@ const PlanForm = ({
                     }}
                     placeholder="e.g. 500"
                   />
+
                   <select
                     value={sizeUnit}
+                    defaultValue={plan?.plan.unit || undefined}
                     onChange={(e) => setSizeUnit(e.target.value)}
                     className="rounded-r-xl border px-3 py-3 text-sm font-bold outline-none"
                     style={{

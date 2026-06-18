@@ -184,9 +184,13 @@ export interface Role {
 export interface DataPlan {
   id?: string;
   network: string;
-  name: string;
+  plan: {
+    value:string|number;
+    unit:"MB"|"GB"
+  };
   size: "MB"|"GB";
-  type: string;
+  planType: string|NetworkType;
+
   validity: string;
   priceInKobo: number;
   isActive:boolean;
