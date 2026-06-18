@@ -1,4 +1,5 @@
 import CreateDiscount from "@/components/admin/CreateDiscount";
+import PlanForm from "@/components/admin/PlanForm";
 import {
   getActiveProviders,
   getAllNetworks,
@@ -19,11 +20,12 @@ export default async function CreateDiscountPage() {
   const roles = await listRoles();
 
   return (
-    <CreateDiscount
+    <PlanForm
       networks={serializeData(networks)}
       networkTypes={serializeData(networkTypes)}
       providers={serializeData(providers)}
       roles={serializeData(roles)}
+      
       
     />
   );

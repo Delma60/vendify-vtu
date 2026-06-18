@@ -97,10 +97,14 @@ export async function getActiveDataPlansByNetwork(network: string): Promise<Data
 }
 
 export async function createDataPlan(data: Partial<DataPlan>): Promise<string> {
+  
   const ref = adminDb.collection('data_plans').doc();
   await ref.set({
     id: ref.id,
     ...data,
+    createAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    isActive: true,
   });
   return ref.id;
 }

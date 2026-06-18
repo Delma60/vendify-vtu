@@ -189,6 +189,7 @@ export interface DataPlan {
   type: string;
   validity: string;
   priceInKobo: number;
+  isActive:boolean;
   rolePrice: {
     [role:string]: {
       type: "fixed"|"percentile"
@@ -327,4 +328,11 @@ export interface NetworkType {
   type: 'airtime'|'data' | 'cable';
   isActive: boolean
   
+}
+
+export interface AirtimeTypeConfig {
+  id: string;
+  type: AirtimeType;
+  name: string;
+  isActive: boolean;
 }

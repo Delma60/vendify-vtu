@@ -63,7 +63,7 @@ export interface DataGiftRequest {
 // ─── Data plan cache (1-hour TTL per network) ─────────────────────────────────
 
 const _planCache = new Map<string, { plans: DataPlanRecord[]|DataPlan[]; expiresAt: number }>();
-const PLAN_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const PLAN_CACHE_TTL = 60 * 1000; // 1 hour
 
 export async function getDataPlans(
   network: DataNetwork,
@@ -88,16 +88,15 @@ export async function getDataPlans(
 }
 
 export async function getAllDataPlans(): Promise<DataPlan[]> {
-  const cacheKey = "all:all:all";
+  const cacheKey = "all:all:al";
   const cached = _planCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.plans as DataPlan[];
 
   let query = adminDb
-    .collection('data_plans')
-    .where('isActive', '==', true) as FirebaseFirestore.Query;
+    .collection('data_plans') as FirebaseFirestore.Query;
 
 
-  const snap = await query.orderBy('priceKobo', 'asc').get();
+  const snap = await query.orderBy('id', 'asc').get();
   const plans = snap.docs.map(d => ({ id: d.id, ...d.data() }) as DataPlanRecord);
 
   _planCache.set(cacheKey, { plans, expiresAt: Date.now() + PLAN_CACHE_TTL });

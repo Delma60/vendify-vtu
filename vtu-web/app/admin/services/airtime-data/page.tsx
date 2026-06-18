@@ -1054,161 +1054,10 @@
 
 //       {/* Add/Edit Modal */}
 //       {showModal && (
-//         <AirtimeTypeModal
-//           item={editItem}
-//           onClose={() => setShowModal(false)}
-//           onSave={(data) => {
-//             if (editItem) {
-//               setItems((prev) =>
-//                 prev.map((i) => (i.id === editItem.id ? { ...i, ...data } : i)),
-//               );
-//               showToast("Airtime type updated.");
-//             } else {
-//               setItems((prev) => [
-//                 ...prev,
-//                 { ...data, id: `at${Date.now()}` } as AirtimeTypeConfig,
-//               ]);
-//               showToast("Airtime type added.");
-//             }
-//             setShowModal(false);
-//           }}
-//           networks={NETWORKS}
-//           typeOptions={[]}
-//         />
+
 //       )}
 
 //       {toast && <Toast msg={toast.msg} type={toast.type} />}
-//     </div>
-//   );
-// }
-
-// function AirtimeTypeModal({
-//   item,
-//   onClose,
-//   onSave,
-//   networks,
-//   typeOptions,
-// }: {
-//   item: AirtimeTypeConfig | null;
-//   onClose: () => void;
-//   onSave: (data: Partial<AirtimeTypeConfig>) => void;
-//   networks: Network[];
-//   typeOptions: AirtimeType[];
-// }) {
-//   const [form, setForm] = useState<Partial<AirtimeTypeConfig>>(
-//     item ?? {
-//       type: "airtime",
-//       name: "",
-//       isActive: true,
-//     },
-//   );
-//   const [saving, setSaving] = useState(false);
-
-//   async function submit() {
-//     setSaving(true);
-//     await fetch("/api/v1/networks/types", {
-//       method: item ? "PUT" : "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(form),
-//     });
-//     onSave(form);
-//     setSaving(false);
-//   }
-
-//   return (
-//     <div
-//       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-//       onClick={onClose}
-//     >
-//       <div
-//         className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
-//         style={{ border: `1px solid ${B.border}` }}
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <h2 className="mb-4 text-base font-bold" style={{ color: B.text }}>
-//           {item ? "Edit airtime type" : "Add airtime type"}
-//         </h2>
-
-//         <div className="space-y-3">
-//           <div>
-//             <label
-//               className="mb-1 block text-xs font-semibold"
-//               style={{ color: B.textMuted }}
-//             >
-//               Name
-//             </label>
-//             <input
-//               value={form.name ?? ""}
-//               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-//               placeholder="e.g. MTN VTU Standard"
-//               className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-//               style={{ borderColor: B.border, color: B.text }}
-//             />
-//           </div>
-
-//           <div className="grid grid-cols-1 gap-3">
-//             <div>
-//               <label
-//                 className="mb-1 block text-xs font-semibold"
-//                 style={{ color: B.textMuted }}
-//               >
-//                 For Service
-//               </label>
-//               <select
-//                 value={form.type}
-//                 onChange={(e) =>
-//                   setForm((f) => ({
-//                     ...f,
-//                     type: e.target.value as any,
-//                   }))
-//                 }
-//                 className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-//                 style={{ borderColor: B.border, color: B.text }}
-//               >
-//                 {[{ name: "airtime" }, { name: "data" }].map((n) => (
-//                   <option key={n.name} value={n.name}>
-//                     {n.name}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           </div>
-
-//           <div
-//             className="flex items-center justify-between rounded-xl p-3"
-//             style={{ background: B.surface }}
-//           >
-//             <span className="text-sm font-medium" style={{ color: B.text }}>
-//               Active
-//             </span>
-//             <Toggle
-//               checked={form.isActive ?? true}
-//               onChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
-//             />
-//           </div>
-//         </div>
-
-//         <div className="mt-5 flex gap-3">
-//           <button
-//             onClick={onClose}
-//             className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold"
-//             style={{ border: `1.5px solid ${B.border}`, color: B.text }}
-//           >
-//             Cancel
-//           </button>
-//           <button
-//             onClick={submit}
-//             disabled={saving || !form.name}
-//             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-//             style={{
-//               background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})`,
-//             }}
-//           >
-//             {saving && <Loader2 size={14} className="animate-spin" />}
-//             {saving ? "Saving…" : item ? "Save changes" : "Add type"}
-//           </button>
-//         </div>
-//       </div>
 //     </div>
 //   );
 // }
@@ -2051,7 +1900,7 @@
 //         {[
 //           {
 //             label: "Total plans",
-//             value: plans.length,
+//             value: plans?.length,
 //             color: B.blue,
 //             bg: B.blueLight,
 //           },
@@ -2070,7 +1919,7 @@
 //           },
 //           {
 //             label: "Networks covered",
-//             value: new Set(plans.map((p) => p.network)).size,
+//             value: new Set(plans?.map((p) => p.network)).size,
 //             color: B.amber,
 //             bg: B.amberLight,
 //           },
@@ -3180,12 +3029,14 @@ import {
 import { CreateNetworkModal } from "@/components/admin/CreateNetworkModal";
 import {
   AirtimeDiscount,
-  baseUrl,
   deleteAirtimeDiscount,
   updateNetwork,
   updateNetworkType,
 } from "@/lib/db/helpers";
 import { getAllDataPlans, getDataPlans } from "@/lib/data/engine";
+import { Toggle } from "@/components/ui/toggle";
+import { NetworkTypeModal } from "@/components/admin/CreateNetworkTypeModal";
+import { DataPlan } from "@/types";
 
 // ─── Brand tokens (matching admin layout) ─────────────────────────────────────
 
@@ -3243,19 +3094,6 @@ interface AirtimeTypeConfig {
   isActive: boolean;
 }
 
-// interface AirtimeDiscount {
-//   id: string;
-//   network: NetworkId;
-//   type: AirtimeType;
-//   label: string;
-//   discountPercent: number;
-//   minAmountKobo: number;
-//   maxAmountKobo: number
-//   isActive: boolean;
-//   validFrom: string;
-//   validTo: string | null;
-// }
-
 interface DataType {
   id: string;
   network: NetworkId;
@@ -3263,19 +3101,6 @@ interface DataType {
   label: string;
   isActive: boolean;
   description: string;
-}
-
-interface DataPlan {
-  id: string;
-  network: NetworkId;
-  category: DataCategory;
-  name: string;
-  size: string;
-  validity: string;
-  costPriceKobo: number;
-  sellPriceKobo: number;
-  providerPlanId: string;
-  isActive: boolean;
 }
 
 interface PinConfig {
@@ -3335,191 +3160,6 @@ const NETWORKS: Network[] = [
     airtimeEnabled: true,
     dataEnabled: false,
     shortcode: "*228#",
-  },
-];
-
-const AIRTIME_DISCOUNTS: AirtimeDiscount[] = [
-  {
-    id: "ad1",
-    network: "mtn",
-    type: "VTU",
-    label: "MTN VTU Standard",
-    discountPercent: 3,
-    minAmountKobo: 5000,
-    isActive: true,
-    validFrom: "2024-01-01",
-    validTo: null,
-  },
-  {
-    id: "ad2",
-    network: "mtn",
-    type: "SNS",
-    label: "MTN SNS Reseller",
-    discountPercent: 2,
-    minAmountKobo: 10000,
-    isActive: true,
-    validFrom: "2024-01-01",
-    validTo: "2024-12-31",
-  },
-  {
-    id: "ad3",
-    network: "airtel",
-    type: "VTU",
-    label: "Airtel VTU Standard",
-    discountPercent: 3,
-    minAmountKobo: 5000,
-    isActive: true,
-    validFrom: "2024-01-01",
-    validTo: null,
-  },
-  {
-    id: "ad4",
-    network: "glo",
-    type: "VTU",
-    label: "Glo VTU Premium",
-    discountPercent: 4,
-    minAmountKobo: 5000,
-    isActive: false,
-    validFrom: "2024-06-01",
-    validTo: "2024-09-30",
-  },
-];
-
-const DATA_TYPES: DataType[] = [
-  {
-    id: "dt1",
-    network: "mtn",
-    category: "SME",
-    label: "MTN SME Data",
-    isActive: true,
-    description: "Affordable data for small businesses and personal use",
-  },
-  {
-    id: "dt2",
-    network: "mtn",
-    category: "Gifting",
-    label: "MTN Gifting Data",
-    isActive: true,
-    description: "Data bundles that can be gifted to other MTN subscribers",
-  },
-  {
-    id: "dt3",
-    network: "mtn",
-    category: "Corporate",
-    label: "MTN Corporate Data",
-    isActive: false,
-    description: "Enterprise-level data plans for businesses",
-  },
-  {
-    id: "dt4",
-    network: "airtel",
-    category: "SME",
-    label: "Airtel SME Data",
-    isActive: true,
-    description: "SME data plans on Airtel network",
-  },
-  {
-    id: "dt5",
-    network: "airtel",
-    category: "Corporate",
-    label: "Airtel Corporate",
-    isActive: true,
-    description: "Corporate data for Airtel businesses",
-  },
-  {
-    id: "dt6",
-    network: "glo",
-    category: "Direct",
-    label: "Glo Direct Data",
-    isActive: true,
-    description: "Direct Glo network data plans",
-  },
-];
-
-const DATA_PLANS: DataPlan[] = [
-  {
-    id: "dp1",
-    network: "mtn",
-    category: "SME",
-    name: "500MB",
-    size: "500MB",
-    validity: "30 Days",
-    costPriceKobo: 13000,
-    sellPriceKobo: 15000,
-    providerPlanId: "mtn-sme-500mb",
-    isActive: true,
-  },
-  {
-    id: "dp2",
-    network: "mtn",
-    category: "SME",
-    name: "1GB",
-    size: "1GB",
-    validity: "30 Days",
-    costPriceKobo: 24000,
-    sellPriceKobo: 28000,
-    providerPlanId: "mtn-sme-1gb",
-    isActive: true,
-  },
-  {
-    id: "dp3",
-    network: "mtn",
-    category: "SME",
-    name: "2GB",
-    size: "2GB",
-    validity: "30 Days",
-    costPriceKobo: 47000,
-    sellPriceKobo: 55000,
-    providerPlanId: "mtn-sme-2gb",
-    isActive: true,
-  },
-  {
-    id: "dp4",
-    network: "mtn",
-    category: "Gifting",
-    name: "1GB Gifting",
-    size: "1GB",
-    validity: "30 Days",
-    costPriceKobo: 28000,
-    sellPriceKobo: 32000,
-    providerPlanId: "mtn-gift-1gb",
-    isActive: true,
-  },
-  {
-    id: "dp5",
-    network: "airtel",
-    category: "SME",
-    name: "1GB",
-    size: "1GB",
-    validity: "30 Days",
-    costPriceKobo: 24000,
-    sellPriceKobo: 28000,
-    providerPlanId: "airtel-sme-1gb",
-    isActive: true,
-  },
-  {
-    id: "dp6",
-    network: "airtel",
-    category: "Corporate",
-    name: "5GB Corporate",
-    size: "5GB",
-    validity: "30 Days",
-    costPriceKobo: 115000,
-    sellPriceKobo: 130000,
-    providerPlanId: "airtel-corp-5gb",
-    isActive: false,
-  },
-  {
-    id: "dp7",
-    network: "glo",
-    category: "Direct",
-    name: "2.9GB",
-    size: "2.9GB",
-    validity: "30 Days",
-    costPriceKobo: 77000,
-    sellPriceKobo: 90000,
-    providerPlanId: "glo-direct-2.9gb",
-    isActive: true,
   },
 ];
 
@@ -3600,14 +3240,6 @@ function marginPct(cost: number, sell: number) {
   return (((sell - cost) / sell) * 100).toFixed(1);
 }
 
-function networkColor(code: NetworkId) {
-  return NETWORKS.find((n) => n.code === code)?.color ?? B.textFaint;
-}
-
-function networkName(code: NetworkId) {
-  return NETWORKS.find((n) => n.code === code)?.name ?? code;
-}
-
 const NETWORK_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "all", label: "All networks" },
   { value: "mtn", label: "MTN" },
@@ -3632,30 +3264,6 @@ function Card({
     >
       {children}
     </div>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={() => !disabled && onChange(!checked)}
-      disabled={disabled}
-      className="flex items-center transition-all active:scale-95 disabled:opacity-40"
-    >
-      {checked ? (
-        <ToggleRight size={26} style={{ color: B.green }} strokeWidth={2} />
-      ) : (
-        <ToggleLeft size={26} style={{ color: B.textFaint }} strokeWidth={2} />
-      )}
-    </button>
   );
 }
 
@@ -4060,7 +3668,7 @@ function NetworkTypesTab() {
   }
 
   useEffect(() => {
-    async function fetchNetworkType() {
+    (async function() {
       try {
         const res = await fetch(`/api/v1/networks/types`);
         const { data } = await res.json();
@@ -4070,8 +3678,7 @@ function NetworkTypesTab() {
       } finally {
         setLoading(false);
       }
-    }
-    fetchNetworkType();
+    })()
   }, []);
 
   const filtered = items?.filter((i) => {
@@ -4136,8 +3743,12 @@ function NetworkTypesTab() {
             </option>
           ))}
         </select>
-        <Link
-          href="/admin/services/airtime-data/network-types/new"
+        <button
+          onClick={() => {
+             setShowModal(true)
+             setEditItem(null)
+          }}
+          // href="/admin/services/airtime-data/network-types/new"
           className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
           style={{
             background: `linear-gradient(135deg, ${B.orange}, ${B.orangeDark})`,
@@ -4145,7 +3756,7 @@ function NetworkTypesTab() {
         >
           <Plus size={14} />
           Add type
-        </Link>
+        </button>
       </div>
 
       {/* Table */}
@@ -4202,13 +3813,17 @@ function NetworkTypesTab() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/services/airtime-data/network-types/${item.id}`}
+                      <button
+                        onClick={() => {
+                          setShowModal(true);
+                          setEditItem(item)
+                        }}
+                        // href={`/admin/services/airtime-data/network-types/${item.id}`}
                         className="inline-flex rounded-lg p-1.5 transition hover:bg-gray-200"
                         style={{ color: B.textFaint }}
                       >
                         <Edit2 size={13} />
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -4219,6 +3834,27 @@ function NetworkTypesTab() {
       </Card>
 
       {toast && <Toast msg={toast.msg} type={toast.type} />}
+      {showModal && (
+        <NetworkTypeModal
+          item={editItem}
+          onClose={() => setShowModal(false)}
+          onSave={(data) => {
+            if (editItem) {
+              setItems((prev) =>
+                prev.map((i) => (i.id === editItem.id ? { ...i, ...data } : i)),
+              );
+              showToast("Airtime type updated.");
+            } else {
+              setItems((prev) => [
+                ...prev,
+                { ...data, id: `at${Date.now()}` } as AirtimeTypeConfig,
+              ]);
+              showToast("Airtime type added.");
+            }
+            setShowModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -4417,16 +4053,18 @@ function DataPlansTab() {
   useEffect(() => {
     (async () => {
       const res = await fetch("/api/internal/data-plans");
-      const { data:dataPlans } = await res.json();
-      console.log(dataPlans);
+      const _res = await res.json();
+      const data = _res.data
+      console.log(_res);
 
-      setPlans(dataPlans);
+
+      setPlans(data);
     })();
   }, []);
 
   const filtered = plans?.filter((p) => {
     if (networkFilter !== "all" && p.network !== networkFilter) return false;
-    if (catFilter !== "all" && p.category !== catFilter) return false;
+    if (catFilter !== "all" && p.type !== catFilter) return false;
     if (
       search &&
       !p.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -4453,7 +4091,7 @@ function DataPlansTab() {
         {[
           {
             label: "Total plans",
-            value: plans.length,
+            value: plans?.length,
             color: B.blue,
             bg: B.blueLight,
           },
@@ -4472,7 +4110,7 @@ function DataPlansTab() {
           },
           {
             label: "Networks covered",
-            value: new Set(plans.map((p) => p.network)).size,
+            value: new Set(plans?.map((p) => p.network)).size,
             color: B.amber,
             bg: B.amberLight,
           },
@@ -4561,14 +4199,13 @@ function DataPlansTab() {
               <thead>
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
                   {[
-                    "Network",
+                    "Network|Data Type",
                     "Category",
                     "Plan",
                     "Size",
                     "Validity",
                     "Cost",
                     "Sell price",
-                    "Margin",
                     "Status",
                     "",
                   ].map((h) => (
@@ -4597,7 +4234,7 @@ function DataPlansTab() {
                       className="group hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <NetworkBadge code={plan?.network} />
+                        <NetworkBadge code={plan?.network} />|{plan?.type}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -4607,12 +4244,7 @@ function DataPlansTab() {
                           {plan?.category}
                         </span>
                       </td>
-                      <td
-                        className="px-4 py-3 text-sm font-semibold"
-                        style={{ color: B.text }}
-                      >
-                        {plan?.name}
-                      </td>
+                      
                       <td
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.orange }}
