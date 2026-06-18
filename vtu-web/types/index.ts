@@ -301,6 +301,7 @@ export interface Network {
   id: string;
   name: string;
   shortcode: string;
+  type: 'telecom' | 'cable' | 'electricity';
   color: string;
   logoLetter: string;
   isActive: boolean;
@@ -311,7 +312,7 @@ export interface Network {
 export interface NetworkType {
   id:string;
   name:string;
-  type: 'aritime'|'data' | 'cable';
+  type: 'airtime'|'data' | 'cable';
   isActive: boolean
   
 }

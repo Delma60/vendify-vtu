@@ -267,16 +267,29 @@ export async function deactivateNetworkType(typeId: string): Promise<void> {
 // AIRTIME DISCOUNTS HELPERS
 // ============================================================================
 
+// {
+//     network: "mtn",
+//     type: "VTU",
+//     provider: "vtpass",
+//     isActive: true,
+//     minAmount: "50",
+//     maxAmount: "5000",
+//     roleDiscounts: {
+//       customer: "2.0",
+//       agent: "2.5",
+//       reseller: "3.0",
+//       api: "3.5",
+//     } as Record<string, string>,
+//   }
 export interface AirtimeDiscount {
   id: string;
-  network: "mtn" | "airtel" | "glo" | "9mobile";
+  network: string;
   type: string;
-  label: string;
-  discountPercent: number;
   minAmountKobo: number;
+  maxAmountKobo: number;
+  provider: string;
+  roleDiscounts: Record<string, number>
   isActive: boolean;
-  validFrom: string;
-  validTo: string | null;
   isDeleted?: boolean;
   deletedAt?: string|Timestamp;
   createdAt?: string|Timestamp;
@@ -301,7 +314,7 @@ export async function getAirtimeDiscount(id: string): Promise<AirtimeDiscount | 
  */
 export async function getAllAirtimeDiscounts(): Promise<AirtimeDiscount[]> {
   const snap = await adminDb.collection('airtime_discounts')
-    .where('isDeleted', '==', false)
+    // .where('isDeleted', '==', false)
     .get();
   if(snap.empty) return []
     
@@ -426,7 +439,7 @@ export async function getAllProviders(): Promise<ProviderConfig[]> {
  */
 export async function getActiveProviders(): Promise<ProviderConfig[]> {
   const snap = await adminDb.collection('providers')
-    .where('isDeleted', '==', false)
+    // .where('isDeleted', '==', false)
     .where('isActive', '==', true)
     .get();
     

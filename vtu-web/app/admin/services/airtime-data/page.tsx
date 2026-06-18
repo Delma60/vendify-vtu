@@ -3196,7 +3196,7 @@ const B = {
   blueLight: "rgba(59,130,246,0.10)",
   purple: "#8B5CF6",
   purpleLight: "rgba(139,92,246,0.10)",
-  text: "#111827",
+  text: "#9ba6be",
   textMuted: "#6B7280",
   textFaint: "#9CA3AF",
   border: "#E5E7EB",
@@ -4220,6 +4220,8 @@ function NetworkTypesTab() {
 function AirtimeDiscountsTab() {
   const [items, setItems] = useState<AirtimeDiscount[]>([]);
   const [networkFilter, setNetworkFilter] = useState("all");
+  const [networks, setNetworks] = useState([]);
+
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error" | "warn";
@@ -4237,6 +4239,7 @@ function AirtimeDiscountsTab() {
     (async () => {
       try {
         const res = await fetch("/api/internal/airtime-discounts");
+        // const nt = await getAllNetwork 
         const { data } = await res.json();
         setItems(data)
       } catch {
@@ -4302,12 +4305,8 @@ function AirtimeDiscountsTab() {
               <thead>
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
                   {[
-                    "Network",
-                    "Type",
-                    "Label",
-                    "Discount",
-                    "Min Amount",
-                    "Expiry",
+                    "Details",
+                    "Min|Max",
                     "Status",
                     "",
                   ].map((h) => (
@@ -4330,43 +4329,18 @@ function AirtimeDiscountsTab() {
                       key={item.id}
                       className="group transition-colors hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3">
-                        <NetworkBadge code={item.network} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
-                          style={{
-                            background: B.purpleLight,
-                            color: B.purple,
-                          }}
-                        >
-                          {item.type}
-                        </span>
-                      </td>
+                     
                       <td
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.text }}
                       >
-                        {item.label}
+                        {item.network} | {item.type}
                       </td>
                       <td
-                        className="px-4 py-3 text-sm font-extrabold"
-                        style={{ color: B.green }}
-                      >
-                        {item.discountPercent}%
-                      </td>
-                      <td
-                        className="px-4 py-3 text-sm font-bold"
-                        style={{ color: B.text }}
-                      >
-                        {fmt(item.minAmountKobo)}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-sm font-bold"
+                        className="px-4 py-3 text-sm font-bold text-gray-700"
                         style={{ color: isExpired ? B.red : B.text }}
                       >
-                        {item.validTo ?? "No expiry"}
+                         {fmt(item.minAmountKobo)} | {fmt(item.maxAmountKobo)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

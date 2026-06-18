@@ -3,18 +3,19 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  ArrowLeft, 
-  Save, 
-  Globe, 
-  Percent, 
-  Server, 
-  Settings, 
-  ToggleLeft, 
+import {
+  ArrowLeft,
+  Save,
+  Globe,
+  Percent,
+  Server,
+  Settings,
+  ToggleLeft,
   ToggleRight,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { Network, NetworkType, Role } from "@/types";
+import { AirtimeDiscount, createAirtimeDiscount, updateAirtimeDiscount } from "@/lib/db/helpers";
 
 const B = {
   orange: "#F97316",
@@ -29,24 +30,46 @@ const B = {
   surface: "#F9FAFB",
 };
 
-
-function Card({ children, title, icon: Icon }: { children: React.ReactNode, title: string, icon: React.ElementType }) {
+function Card({
+  children,
+  title,
+  icon: Icon,
+}: {
+  children: React.ReactNode;
+  title: string;
+  icon: React.ElementType;
+}) {
   return (
-    <div className="flex flex-col rounded-2xl bg-white" style={{ border: `1px solid ${B.border}` }}>
-      <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: B.border }}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: B.orangeLight }}>
+    <div
+      className="flex flex-col rounded-2xl bg-white"
+      style={{ border: `1px solid ${B.border}` }}
+    >
+      <div
+        className="flex items-center gap-3 border-b px-5 py-4"
+        style={{ borderColor: B.border }}
+      >
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-lg"
+          style={{ background: B.orangeLight }}
+        >
           <Icon size={16} style={{ color: B.orange }} />
         </div>
-        <h2 className="text-base font-bold" style={{ color: B.text }}>{title}</h2>
+        <h2 className="text-base font-bold" style={{ color: B.text }}>
+          {title}
+        </h2>
       </div>
-      <div className="p-5 flex-1 space-y-4">
-        {children}
-      </div>
+      <div className="p-5 flex-1 space-y-4">{children}</div>
     </div>
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <button
       type="button"
@@ -62,29 +85,34 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-
-interface CreateDiscountProps{
-  roles:Role[]
-  networks:Network[]
-  networkTypes:NetworkType[]
-  providers:any[]
-
+interface CreateDiscountProps {
+  roles: Role[];
+  networks: Network[];
+  networkTypes: NetworkType[];
+  providers: any[];
+  discount?:AirtimeDiscount|null
 }
 
-const CreateDiscount = ({ networkTypes, networks, roles, providers}:CreateDiscountProps) => {
+const DiscountForm = ({
+  networkTypes,
+  networks,
+  roles,
+  providers,
+  discount
+}: CreateDiscountProps) => {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(discount ?? {
     network: "mtn",
     type: "VTU",
     provider: "vtpass",
     isActive: true,
     minAmount: "50",
+    maxAmount: "5000",
     roleDiscounts: {
-      user: "2.0",
+      customer: "2.0",
       agent: "2.5",
       reseller: "3.0",
       api: "3.5",
@@ -107,13 +135,33 @@ const CreateDiscount = ({ networkTypes, networks, roles, providers}:CreateDiscou
 
   const handleSave = async () => {
     setIsSaving(true);
+    try{
+      const params = {
+          network: formData.network,
+          type: formData.type,
+          provider: formData.provider,
+          isActive: formData.isActive,
+          minAmountKobo: parseFloat(formData.minAmount) * 100,
+          maxAmountKobo: parseFloat(formData.maxAmount) * 100,
+          roleDiscounts: Object.fromEntries(
+            Object.entries(formData.roleDiscounts).map(([key, value]) => [key, parseFloat(value)])
+          ),
+        }
+      if(discount){
+        await createAirtimeDiscount(params);
+      }else{
+        await updateAirtimeDiscount(discount?.id, params)
+      }
+  
+      setTimeout(() => {
+        setIsSaving(false);
+        router.push("/admin/services/airtime-data?tab=airtime-discounts");
+      }, 1000);
+    }
+    catch{
+      alert("error")
+    }
     // TODO: Wire this up to the createAirtimeDiscount helper
-    // await createAirtimeDiscount({...});
-
-    setTimeout(() => {
-      setIsSaving(false);
-      router.push("/admin/services/airtime-data?tab=airtime-discounts");
-    }, 1000);
   };
   return (
     <div>
@@ -343,4 +391,4 @@ const CreateDiscount = ({ networkTypes, networks, roles, providers}:CreateDiscou
   );
 };
 
-export default CreateDiscount;
+export default DiscountForm;
