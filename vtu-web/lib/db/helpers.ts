@@ -314,7 +314,7 @@ export async function getAirtimeDiscount(id: string): Promise<AirtimeDiscount | 
  */
 export async function getAllAirtimeDiscounts(): Promise<AirtimeDiscount[]> {
   const snap = await adminDb.collection('airtime_discounts')
-    // .where('isDeleted', '==', false)
+    .where('isDeleted', '==', false)
     .get();
   if(snap.empty) return []
     

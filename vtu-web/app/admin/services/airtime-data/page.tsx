@@ -2022,7 +2022,7 @@
 //     setTimeout(() => setToast(null), 3000);
 //   }
 
-//   const filtered = plans.filter((p) => {
+//   const filtered = plans?.filter((p) => {
 //     if (networkFilter !== "all" && p.network !== networkFilter) return false;
 //     if (catFilter !== "all" && p.category !== catFilter) return false;
 //     if (
@@ -2057,13 +2057,13 @@
 //           },
 //           {
 //             label: "Active",
-//             value: plans.filter((p) => p.isActive).length,
+//             value: plans?.filter((p) => p.isActive).length,
 //             color: B.green,
 //             bg: B.greenLight,
 //           },
 //           {
 //             label: "Margin issues",
-//             value: plans.filter((p) => p.costPriceKobo > p.sellPriceKobo)
+//             value: plans?.filter((p) => p.costPriceKobo > p.sellPriceKobo)
 //               .length,
 //             color: B.red,
 //             bg: B.redLight,
@@ -2153,7 +2153,7 @@
 //           <EmptyState
 //             icon={Database}
 //             title="No data plans found"
-//             subtitle="Try adjusting filters or add a new plan."
+//             subtitle="Try adjusting filters or add a new plan?."
 //             onAdd={() => setShowModal(true)}
 //           />
 //         ) : (
@@ -2186,54 +2186,54 @@
 //               <tbody className="divide-y" style={{ borderColor: B.border }}>
 //                 {filtered?.map((plan) => {
 //                   const margin = marginPct(
-//                     plan.costPriceKobo,
-//                     plan.sellPriceKobo,
+//                     plan?.costPriceKobo,
+//                     plan?.sellPriceKobo,
 //                   );
-//                   const marginBreach = plan.costPriceKobo > plan.sellPriceKobo;
+//                   const marginBreach = plan?.costPriceKobo > plan?.sellPriceKobo;
 
 //                   return (
 //                     <tr
-//                       key={plan.id}
+//                       key={plan?.id}
 //                       className="group hover:bg-gray-50 transition-colors"
 //                     >
 //                       <td className="px-4 py-3">
-//                         <NetworkBadge code={plan.network} />
+//                         <NetworkBadge code={plan?.network} />
 //                       </td>
 //                       <td className="px-4 py-3">
 //                         <span
 //                           className="rounded-md px-1.5 py-0.5 text-[11px] font-bold"
 //                           style={{ background: B.blueLight, color: B.blue }}
 //                         >
-//                           {plan.category}
+//                           {plan?.category}
 //                         </span>
 //                       </td>
 //                       <td
 //                         className="px-4 py-3 text-sm font-semibold"
 //                         style={{ color: B.text }}
 //                       >
-//                         {plan.name}
+//                         {plan?.name}
 //                       </td>
 //                       <td
 //                         className="px-4 py-3 text-sm font-bold"
 //                         style={{ color: B.orange }}
 //                       >
-//                         {plan.size}
+//                         {plan?.size}
 //                       </td>
 //                       <td
 //                         className="px-4 py-3 text-xs"
 //                         style={{ color: B.textMuted }}
 //                       >
-//                         {plan.validity}
+//                         {plan?.validity}
 //                       </td>
 //                       <td
 //                         className="px-4 py-3 text-sm"
 //                         style={{ color: B.textMuted }}
 //                       >
-//                         {plan.costPriceKobo ? fmt(plan.costPriceKobo) : "—"}
+//                         {plan?.costPriceKobo ? fmt(plan?.costPriceKobo) : "—"}
 //                       </td>
 //                       {/* Inline sell price editor */}
 //                       <td className="px-4 py-3">
-//                         {editingPriceId === plan.id ? (
+//                         {editingPriceId === plan?.id ? (
 //                           <div className="flex items-center gap-1">
 //                             <span
 //                               className="text-xs"
@@ -2247,14 +2247,14 @@
 //                               value={editingPrice}
 //                               onChange={(e) => setEditingPrice(e.target.value)}
 //                               onKeyDown={(e) => {
-//                                 if (e.key === "Enter") savePrice(plan.id);
+//                                 if (e.key === "Enter") savePrice(plan?.id);
 //                                 if (e.key === "Escape") setEditingPriceId(null);
 //                               }}
 //                               className="w-20 rounded-lg border px-1.5 py-1 text-sm font-bold outline-none"
 //                               style={{ borderColor: B.orange }}
 //                             />
 //                             <button
-//                               onClick={() => savePrice(plan.id)}
+//                               onClick={() => savePrice(plan?.id)}
 //                               className="flex h-6 w-6 items-center justify-center rounded-lg"
 //                               style={{ background: B.green, color: "#fff" }}
 //                             >
@@ -2274,13 +2274,13 @@
 //                               className="text-sm font-bold"
 //                               style={{ color: B.text }}
 //                             >
-//                               {fmt(plan.sellPriceKobo)}
+//                               {fmt(plan?.sellPriceKobo)}
 //                             </span>
 //                             <button
 //                               onClick={() => {
-//                                 setEditingPriceId(plan.id);
+//                                 setEditingPriceId(plan?.id);
 //                                 setEditingPrice(
-//                                   String(plan.sellPriceKobo / 100),
+//                                   String(plan?.sellPriceKobo / 100),
 //                                 );
 //                               }}
 //                               className="rounded-md p-1 opacity-0 transition hover:bg-gray-100 group-hover:opacity-100"
@@ -2316,13 +2316,13 @@
 //                       </td>
 //                       <td className="px-4 py-3">
 //                         <div className="flex items-center gap-2">
-//                           <StatusBadge active={plan.isActive} />
+//                           <StatusBadge active={plan?.isActive} />
 //                           <Toggle
-//                             checked={plan.isActive}
+//                             checked={plan?.isActive}
 //                             onChange={(v) => {
 //                               setPlans((prev) =>
 //                                 prev.map((p) =>
-//                                   p.id === plan.id ? { ...p, isActive: v } : p,
+//                                   p.id === plan?.id ? { ...p, isActive: v } : p,
 //                                 ),
 //                               );
 //                               showToast(`Plan ${v ? "enabled" : "disabled"}.`);
@@ -2358,7 +2358,7 @@
 //           onSave={(data) => {
 //             if (editPlan) {
 //               setPlans((prev) =>
-//                 prev.map((p) => (p.id === editPlan.id ? { ...p, ...data } : p)),
+//                 prev.map((p) => (p.id === editplan?.id ? { ...p, ...data } : p)),
 //               );
 //               showToast("Plan updated.");
 //             } else {
@@ -3178,7 +3178,14 @@ import {
   Zap,
 } from "lucide-react";
 import { CreateNetworkModal } from "@/components/admin/CreateNetworkModal";
-import { baseUrl, updateNetwork, updateNetworkType } from "@/lib/db/helpers";
+import {
+  AirtimeDiscount,
+  baseUrl,
+  deleteAirtimeDiscount,
+  updateNetwork,
+  updateNetworkType,
+} from "@/lib/db/helpers";
+import { getAllDataPlans, getDataPlans } from "@/lib/data/engine";
 
 // ─── Brand tokens (matching admin layout) ─────────────────────────────────────
 
@@ -3236,17 +3243,18 @@ interface AirtimeTypeConfig {
   isActive: boolean;
 }
 
-interface AirtimeDiscount {
-  id: string;
-  network: NetworkId;
-  type: AirtimeType;
-  label: string;
-  discountPercent: number;
-  minAmountKobo: number;
-  isActive: boolean;
-  validFrom: string;
-  validTo: string | null;
-}
+// interface AirtimeDiscount {
+//   id: string;
+//   network: NetworkId;
+//   type: AirtimeType;
+//   label: string;
+//   discountPercent: number;
+//   minAmountKobo: number;
+//   maxAmountKobo: number
+//   isActive: boolean;
+//   validFrom: string;
+//   validTo: string | null;
+// }
 
 interface DataType {
   id: string;
@@ -4220,7 +4228,7 @@ function NetworkTypesTab() {
 function AirtimeDiscountsTab() {
   const [items, setItems] = useState<AirtimeDiscount[]>([]);
   const [networkFilter, setNetworkFilter] = useState("all");
-  const [networks, setNetworks] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [toast, setToast] = useState<{
     msg: string;
@@ -4237,13 +4245,15 @@ function AirtimeDiscountsTab() {
 
   useEffect(() => {
     (async () => {
+      setIsLoading(true);
       try {
         const res = await fetch("/api/internal/airtime-discounts");
-        // const nt = await getAllNetwork 
+        // const nt = await getAllNetwork
         const { data } = await res.json();
-        setItems(data)
+        setItems(data);
       } catch {
-        
+      } finally {
+        setIsLoading(false);
       }
     })();
   }, []);
@@ -4259,10 +4269,20 @@ function AirtimeDiscountsTab() {
     showToast(`Discount ${val ? "enabled" : "disabled"}.`);
   }
 
-  function deleteItem(id: string) {
+  async function deleteItem(id: string) {
     if (!confirm("Delete this discount?")) return;
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    showToast("Discount deleted.", "warn");
+    await deleteAirtimeDiscount(id).then(() => {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      showToast("Discount deleted.", "warn");
+    });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center align-center">
+        <Loader2 size={24} className="animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -4304,12 +4324,7 @@ function AirtimeDiscountsTab() {
             <table className="w-full min-w-[750px]">
               <thead>
                 <tr style={{ borderBottom: `1px solid ${B.border}` }}>
-                  {[
-                    "Details",
-                    "Min|Max",
-                    "Status",
-                    "",
-                  ].map((h) => (
+                  {["Details", "Min|Max", "Status", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide"
@@ -4322,29 +4337,23 @@ function AirtimeDiscountsTab() {
               </thead>
               <tbody className="divide-y" style={{ borderColor: B.border }}>
                 {filtered?.map((item) => {
-                  const isExpired =
-                    item.validTo && new Date(item.validTo) < new Date();
                   return (
                     <tr
                       key={item.id}
                       className="group transition-colors hover:bg-gray-50"
                     >
-                     
                       <td
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.text }}
                       >
                         {item.network} | {item.type}
                       </td>
-                      <td
-                        className="px-4 py-3 text-sm font-bold text-gray-700"
-                        style={{ color: isExpired ? B.red : B.text }}
-                      >
-                         {fmt(item.minAmountKobo)} | {fmt(item.maxAmountKobo)}
+                      <td className="px-4 py-3 text-sm font-bold text-gray-700">
+                        {fmt(item.minAmountKobo)} | {fmt(item.maxAmountKobo)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <StatusBadge active={item.isActive && !isExpired} />
+                          <StatusBadge active={item.isActive} />
                           <Toggle
                             checked={item.isActive}
                             onChange={(v) => toggleItem(item.id, v)}
@@ -4386,7 +4395,7 @@ function AirtimeDiscountsTab() {
 // ─── Tab: Data Plans ──────────────────────────────────────────────────────────
 
 function DataPlansTab() {
-  const [plans, setPlans] = useState<DataPlan[]>(DATA_PLANS);
+  const [plans, setPlans] = useState<DataPlan[]>([]);
   const [networkFilter, setNetworkFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -4405,7 +4414,17 @@ function DataPlansTab() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const filtered = plans.filter((p) => {
+  useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/internal/data-plans");
+      const { data:dataPlans } = await res.json();
+      console.log(dataPlans);
+
+      setPlans(dataPlans);
+    })();
+  }, []);
+
+  const filtered = plans?.filter((p) => {
     if (networkFilter !== "all" && p.network !== networkFilter) return false;
     if (catFilter !== "all" && p.category !== catFilter) return false;
     if (
@@ -4440,13 +4459,13 @@ function DataPlansTab() {
           },
           {
             label: "Active",
-            value: plans.filter((p) => p.isActive).length,
+            value: plans?.filter((p) => p.isActive).length,
             color: B.green,
             bg: B.greenLight,
           },
           {
             label: "Margin issues",
-            value: plans.filter((p) => p.costPriceKobo > p.sellPriceKobo)
+            value: plans?.filter((p) => p.costPriceKobo > p.sellPriceKobo)
               .length,
             color: B.red,
             bg: B.redLight,
@@ -4533,7 +4552,7 @@ function DataPlansTab() {
           <EmptyState
             icon={Database}
             title="No data plans found"
-            subtitle="Try adjusting filters or add a new plan."
+            subtitle="Try adjusting filters or add a new plan?."
             addLink="/admin/services/airtime-data/data-plans/new"
           />
         ) : (
@@ -4566,54 +4585,55 @@ function DataPlansTab() {
               <tbody className="divide-y" style={{ borderColor: B.border }}>
                 {filtered?.map((plan) => {
                   const margin = marginPct(
-                    plan.costPriceKobo,
-                    plan.sellPriceKobo,
+                    plan?.costPriceKobo,
+                    plan?.sellPriceKobo,
                   );
-                  const marginBreach = plan.costPriceKobo > plan.sellPriceKobo;
+                  const marginBreach =
+                    plan?.costPriceKobo > plan?.sellPriceKobo;
 
                   return (
                     <tr
-                      key={plan.id}
+                      key={plan?.id}
                       className="group hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <NetworkBadge code={plan.network} />
+                        <NetworkBadge code={plan?.network} />
                       </td>
                       <td className="px-4 py-3">
                         <span
                           className="rounded-md px-1.5 py-0.5 text-[11px] font-bold"
                           style={{ background: B.blueLight, color: B.blue }}
                         >
-                          {plan.category}
+                          {plan?.category}
                         </span>
                       </td>
                       <td
                         className="px-4 py-3 text-sm font-semibold"
                         style={{ color: B.text }}
                       >
-                        {plan.name}
+                        {plan?.name}
                       </td>
                       <td
                         className="px-4 py-3 text-sm font-bold"
                         style={{ color: B.orange }}
                       >
-                        {plan.size}
+                        {plan?.size}
                       </td>
                       <td
                         className="px-4 py-3 text-xs"
                         style={{ color: B.textMuted }}
                       >
-                        {plan.validity}
+                        {plan?.validity}
                       </td>
                       <td
                         className="px-4 py-3 text-sm"
                         style={{ color: B.textMuted }}
                       >
-                        {plan.costPriceKobo ? fmt(plan.costPriceKobo) : "—"}
+                        {plan?.costPriceKobo ? fmt(plan?.costPriceKobo) : "—"}
                       </td>
                       {/* Inline sell price editor */}
                       <td className="px-4 py-3">
-                        {editingPriceId === plan.id ? (
+                        {editingPriceId === plan?.id ? (
                           <div className="flex items-center gap-1">
                             <span
                               className="text-xs"
@@ -4627,14 +4647,14 @@ function DataPlansTab() {
                               value={editingPrice}
                               onChange={(e) => setEditingPrice(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") savePrice(plan.id);
+                                if (e.key === "Enter") savePrice(plan?.id);
                                 if (e.key === "Escape") setEditingPriceId(null);
                               }}
                               className="w-20 rounded-lg border px-1.5 py-1 text-sm font-bold outline-none"
                               style={{ borderColor: B.orange }}
                             />
                             <button
-                              onClick={() => savePrice(plan.id)}
+                              onClick={() => savePrice(plan?.id)}
                               className="flex h-6 w-6 items-center justify-center rounded-lg"
                               style={{ background: B.green, color: "#fff" }}
                             >
@@ -4654,13 +4674,13 @@ function DataPlansTab() {
                               className="text-sm font-bold"
                               style={{ color: B.text }}
                             >
-                              {fmt(plan.sellPriceKobo)}
+                              {fmt(plan?.sellPriceKobo)}
                             </span>
                             <button
                               onClick={() => {
-                                setEditingPriceId(plan.id);
+                                setEditingPriceId(plan?.id);
                                 setEditingPrice(
-                                  String(plan.sellPriceKobo / 100),
+                                  String(plan?.sellPriceKobo / 100),
                                 );
                               }}
                               className="rounded-md p-1 opacity-0 transition hover:bg-gray-100 group-hover:opacity-100"
@@ -4696,13 +4716,13 @@ function DataPlansTab() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <StatusBadge active={plan.isActive} />
+                          <StatusBadge active={plan?.isActive} />
                           <Toggle
-                            checked={plan.isActive}
+                            checked={plan?.isActive}
                             onChange={(v) => {
                               setPlans((prev) =>
                                 prev.map((p) =>
-                                  p.id === plan.id ? { ...p, isActive: v } : p,
+                                  p.id === plan?.id ? { ...p, isActive: v } : p,
                                 ),
                               );
                               showToast(`Plan ${v ? "enabled" : "disabled"}.`);
@@ -4712,7 +4732,7 @@ function DataPlansTab() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
-                          href={`/admin/services/airtime-data/data-plans/${plan.id}`}
+                          href={`/admin/services/airtime-data/data-plans/${plan?.id}`}
                           className="inline-flex rounded-lg p-1.5 transition hover:bg-gray-200"
                           style={{ color: B.textFaint }}
                         >

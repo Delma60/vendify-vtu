@@ -182,13 +182,25 @@ export interface Role {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export interface DataPlan {
-  id: string;
+  id?: string;
   network: string;
   name: string;
-  size: string;
+  size: "MB"|"GB";
+  type: string;
   validity: string;
-  price: number;                   // in kobo
+  priceInKobo: number;
+  rolePrice: {
+    [role:string]: {
+      type: "fixed"|"percentile"
+      value: number
+    }
+
+  }                   // in kobo
   providerPlanId: string;
+  provider:{
+    id:string;
+    costPrice:string;
+  }
 }
 
 export interface MeterInfo {
