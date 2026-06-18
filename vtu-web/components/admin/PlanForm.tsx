@@ -93,7 +93,7 @@ interface CreateProps {
   plan?: DataPlan;
 }
 
-const DiscountForm = ({
+const PlanForm = ({
   networkTypes,
   networks,
   roles,
@@ -419,4 +419,4 @@ const DiscountForm = ({
   );
 };
 
-export default DiscountForm;
+export default PlanForm;
