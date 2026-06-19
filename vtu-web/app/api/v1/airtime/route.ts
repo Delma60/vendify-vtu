@@ -12,6 +12,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { User } from '@/types';
 import bcrypt from 'bcryptjs';
+import { auth } from '@/lib/auth';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -177,6 +178,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try{
     const session = await getSession();
+    const user = await auth();
     if (!session) return err('Unauthorized', 401);
   
     const amountRaw = new URL(request.url).searchParams.get('amount');
@@ -186,10 +188,11 @@ export async function GET(request: NextRequest) {
     if (!amount || isNaN(amount) || amount <= 0) {
       return err('Provide a valid amount in kobo as a query param: ?amount=50000', 422);
     }
-    console.log(session)
+    console.log(user)
     // getRole
+
   
-    const fee = await calculateFee('airtime', session, amount, network);
+    const fee = await calculateFee('airtime', user, amount, network);
   
     return ok({
       // discount: ,

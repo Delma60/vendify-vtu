@@ -108,7 +108,8 @@ export async function calculateFee(
   // const nt = await getAirtimeDiscountsByNetwork(network)
   const ds = await getAllAirtimeDiscountsWIthNetwork()
   const d = ds.find((d) => d.network?.code == network)
-  console.log({ d, network })
+  const discountFee  = d?.roleDiscounts[user.roleId]
+  // console.log({ discountFee, d })
 
   let platformFeeKobo = 0;
 
