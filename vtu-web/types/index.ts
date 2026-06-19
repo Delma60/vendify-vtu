@@ -120,6 +120,7 @@ export interface SessionPayload {
   roleId: string;
   sessionId: string;
   deviceId: string;
+  pinSet:boolean
   iat: number;
   exp: number;
 }

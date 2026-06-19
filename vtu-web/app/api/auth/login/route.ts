@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   // Issue session
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const token = await signSessionToken({ uid, email, roleId: user.roleId, sessionId, deviceId });
+  const token = await signSessionToken({ uid, email, roleId: user.roleId, sessionId, deviceId, pinSet: !!user.transactionPin });
   await storeSession(uid, sessionId, deviceId, expiresAt);
   await setSessionCookie(token);
 

@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth/session';
+import { pinCheckMiddleware } from './lib/auth/pin';
 
 // ─── Role tiers ───────────────────────────────────────────────────────────────
 // Roles that may access admin UI / internal API routes at all.
@@ -96,8 +97,11 @@ export async function middleware(request: NextRequest) {
       const dest = ADMIN_ROLE_IDS.has(session.roleId) ? '/admin' : '/dashboard';
       return NextResponse.redirect(new URL(dest, request.url));
     }
+    const pinRedirect = await pinCheckMiddleware(request);
+    if (pinRedirect) return pinRedirect;
     return NextResponse.next();
   }
+  
 
   // ── Unauthenticated — reject or redirect ──────────────────────────────────
   if (!session) {
@@ -115,6 +119,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
+
+  
 
   // ── Forward identity to route handlers via headers ────────────────────────
   const headers = new Headers(request.headers);
