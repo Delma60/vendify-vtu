@@ -186,10 +186,13 @@ export async function GET(request: NextRequest) {
     if (!amount || isNaN(amount) || amount <= 0) {
       return err('Provide a valid amount in kobo as a query param: ?amount=50000', 422);
     }
+    console.log(session)
+    // getRole
   
-    const fee = await calculateFee('airtime', amount, network);
+    const fee = await calculateFee('airtime', session, amount, network);
   
     return ok({
+      // discount: ,
       amountKobo: amount,
       platformFeeKobo: fee.platformFeeKobo,
       vatKobo: fee.vatKobo,

@@ -3,7 +3,7 @@
 
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { getNetworkTypesByNetwork } from "@/lib/db/helpers";
+import { getAllAirtimeDiscountsWIthNetwork } from "@/lib/db/helpers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,12 +100,15 @@ export async function listFeeConfigs(includeInactive = false): Promise<ServiceFe
  */
 export async function calculateFee(
   service: string,
+  user:any,
   amountKobo: number,
   network:string
 ): Promise<FeeCalculationResult> {
   const config = await getFeeConfigForService(service);
-  const nt = await getNetworkTypesByNetwork(network)
-  console.log({ nt })
+  // const nt = await getAirtimeDiscountsByNetwork(network)
+  const ds = await getAllAirtimeDiscountsWIthNetwork()
+  const d = ds.find((d) => d.network?.code == network)
+  console.log({ d, network })
 
   let platformFeeKobo = 0;
 

@@ -326,12 +326,33 @@ export async function getAllAirtimeDiscounts(): Promise<AirtimeDiscount[]> {
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AirtimeDiscount));
 }
 
+export async function getAllAirtimeDiscountsWIthNetwork(): Promise<AirtimeDiscount[]> {
+  try{
+      let discounts = await getAllAirtimeDiscounts();
+      discounts = await Promise.all(
+          discounts.map(async (dp: any) => {
+          // Handle database inconsistency (some docs use 'plan', some use 'planType')
+              const planId = dp.network_id;
+              console.log(typeof planId)
+              const nt = (await getNetwork(planId.toString())) as Network;
+              dp.network = nt; 
+              
+              return dp;
+          })
+      );
+      return discounts;
+    }
+    catch{
+      return [];
+    }
+}
+
 /**
  * Retrieves discounts associated with a specific network.
  */
-export async function getAirtimeDiscountsByNetwork(networkId: string): Promise<AirtimeDiscount[]> {
+export async function getAirtimeDiscountsByNetwork(networkCode: string): Promise<AirtimeDiscount[]> {
   const snap = await adminDb.collection('airtime_discounts')
-    .where('network', '==', networkId)
+    .where('code', '==', networkCode)
     .where('isDeleted', '==', false)
     .get();
     
