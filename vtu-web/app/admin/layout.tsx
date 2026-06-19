@@ -1,9 +1,9 @@
 // vtu-web/app/admin/layout.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -41,124 +41,178 @@ import {
   Landmark,
   SlidersHorizontal,
   HardDrive,
-} from 'lucide-react';
-import { useImpersonation } from '@/hooks/useImpersonation';
-import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
+} from "lucide-react";
+import { useImpersonation } from "@/hooks/useImpersonation";
+import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 
 const B = {
-  orange: '#F97316',
-  orangeDark: '#EA580C',
-  green: '#22C55E',
-  text: '#111827',
-  textMuted: '#6B7280',
-  textFaint: '#9CA3AF',
-  border: '#E5E7EB',
-  surface: '#F9FAFB',
+  orange: "#F97316",
+  orangeDark: "#EA580C",
+  green: "#22C55E",
+  text: "#111827",
+  textMuted: "#6B7280",
+  textFaint: "#9CA3AF",
+  border: "#E5E7EB",
+  surface: "#F9FAFB",
 };
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 
-type NavLeaf = { href: string; label: string; icon: React.ElementType; badge?: string };
+type NavLeaf = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: string;
+};
 type NavGroup = { label: string; icon: React.ElementType; children: NavLeaf[] };
 type NavItem = NavLeaf | NavGroup;
 type NavSection = { label: string; items: NavItem[] };
 
 function isGroup(item: NavItem): item is NavGroup {
-  return 'children' in item;
+  return "children" in item;
 }
 
 const ADMIN_NAV: NavSection[] = [
   {
-    label: 'Overview',
+    label: "Overview",
     items: [
-      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/admin/analytics', label: 'Analytics', icon: PieChart },
-      { href: '/admin/audit-log', label: 'Audit Log', icon: ScrollText },
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/analytics", label: "Analytics", icon: PieChart },
+      { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
     ],
   },
   {
-    label: 'Users',
+    label: "Users",
     items: [
       {
-        label: 'User Management',
+        label: "User Management",
         icon: Users,
         children: [
-          { href: '/admin/users', label: 'All Users', icon: Users },
-          { href: '/admin/users/kyc', label: 'KYC Verification', icon: UserCheck },
-          { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
+          { href: "/admin/users", label: "All Users", icon: Users },
+          {
+            href: "/admin/users/kyc",
+            label: "KYC Verification",
+            icon: UserCheck,
+          },
+          { href: "/admin/roles", label: "Roles & Permissions", icon: Shield },
         ],
       },
-      { href: '/admin/support', label: 'Support Tickets', icon: Megaphone },
-      { href: '/admin/disputes', label: 'Disputes', icon: AlertOctagon },
+      { href: "/admin/support", label: "Support Tickets", icon: Megaphone },
+      { href: "/admin/disputes", label: "Disputes", icon: AlertOctagon },
     ],
   },
   {
-    label: 'Transactions',
-    items: [
-      { href: '/admin/transactions', label: 'All Transactions', icon: CreditCard },
-      { href: '/admin/transactions/refunds', label: 'Refunds', icon: DollarSign },
-      { href: '/admin/fraud', label: 'Fraud Flags', icon: Bug },
-      { href: '/admin/dlq', label: 'Dead Letter Queue', icon: HardDrive },
-    ],
-  },
-  {
-    label: 'Services & Providers',
+    label: "Transactions",
     items: [
       {
-        label: 'Providers',
+        href: "/admin/transactions",
+        label: "All Transactions",
+        icon: CreditCard,
+      },
+      {
+        href: "/admin/transactions/refunds",
+        label: "Refunds",
+        icon: DollarSign,
+      },
+      { href: "/admin/fraud", label: "Fraud Flags", icon: Bug },
+      { href: "/admin/dlq", label: "Dead Letter Queue", icon: HardDrive },
+    ],
+  },
+  {
+    label: "Services & Providers",
+    items: [
+      {
+        label: "Providers",
         icon: Radio,
         children: [
-          { href: '/admin/providers', label: 'Provider Config', icon: SlidersHorizontal },
-          { href: '/admin/providers/floats', label: 'Float Management', icon: Landmark },
-          { href: '/admin/providers/prices', label: 'Price Sync', icon: TrendingUp },
+          {
+            href: "/admin/providers",
+            label: "Provider Config",
+            icon: SlidersHorizontal,
+          },
+          {
+            href: "/admin/providers/floats",
+            label: "Float Management",
+            icon: Landmark,
+          },
+          {
+            href: "/admin/providers/prices",
+            label: "Price Sync",
+            icon: TrendingUp,
+          },
         ],
       },
       {
-        label: 'Services',
+        label: "Services",
         icon: Package,
         children: [
-          { href: '/admin/services/airtime-data', label: 'Airtime & Data', icon: Globe },
-          { href: '/admin/services/cable', label: 'Cable Bouquets', icon: Ticket },
-          { href: '/admin/services/exam-pins', label: 'Exam Pins', icon: BookOpen },
-          { href: '/admin/services/a2c', label: 'Airtime to Cash', icon: DollarSign },
+          {
+            href: "/admin/services/airtime-data",
+            label: "Airtime & Data",
+            icon: Globe,
+          },
+          {
+            href: "/admin/services/cable",
+            label: "Cable Bouquets",
+            icon: Ticket,
+          },
+          {
+            href: "/admin/services/exam-pins",
+            label: "Exam Pins",
+            icon: BookOpen,
+          },
+          {
+            href: "/admin/services/a2c",
+            label: "Airtime to Cash",
+            icon: DollarSign,
+          },
         ],
+      },
+      {
+        label: "Payment Gateways",
+        href: "/admin/payments/providers",
+        icon: CreditCard, // Or whichever icon library you are using
       },
     ],
   },
   {
-    label: 'Finance',
+    label: "Finance",
     items: [
-      { href: '/admin/wallets', label: 'Wallets', icon: Landmark },
-      { href: '/admin/withdrawals', label: 'Withdrawals', icon: FileText },
-      { href: '/admin/commissions', label: 'Commissions', icon: BarChart2 },
-      { href: '/admin/loans', label: 'Loans', icon: CreditCard },
+      { href: "/admin/wallets", label: "Wallets", icon: Landmark },
+      { href: "/admin/withdrawals", label: "Withdrawals", icon: FileText },
+      { href: "/admin/commissions", label: "Commissions", icon: BarChart2 },
+      { href: "/admin/loans", label: "Loans", icon: CreditCard },
     ],
   },
   {
-    label: 'Marketing',
+    label: "Marketing",
     items: [
-      { href: '/admin/subscriptions', label: 'Subscription Plans', icon: ShoppingBag },
-      { href: '/admin/cashback', label: 'Cashback Campaigns', icon: Tags },
-      { href: '/admin/coupons', label: 'Coupons', icon: Ticket },
-      { href: '/admin/events', label: 'Events', icon: Megaphone },
+      {
+        href: "/admin/subscriptions",
+        label: "Subscription Plans",
+        icon: ShoppingBag,
+      },
+      { href: "/admin/cashback", label: "Cashback Campaigns", icon: Tags },
+      { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+      { href: "/admin/events", label: "Events", icon: Megaphone },
     ],
   },
   {
-    label: 'API',
+    label: "API",
     items: [
-      { href: '/admin/api-keys', label: 'API Keys', icon: Key },
-      { href: '/admin/api-logs', label: 'API Logs', icon: ScrollText },
+      { href: "/admin/api-keys", label: "API Keys", icon: Key },
+      { href: "/admin/api-logs", label: "API Logs", icon: ScrollText },
     ],
   },
   {
-    label: 'System',
+    label: "System",
     items: [
-      { href: '/admin/settings', label: 'Settings', icon: Settings },
-      { href: '/admin/maintenance', label: 'Maintenance', icon: Wrench },
-      { href: '/admin/ip-blacklist', label: 'IP Blacklist', icon: Shield },
-      { href: '/admin/geo', label: 'Geo Blocking', icon: Globe },
+      { href: "/admin/settings", label: "Settings", icon: Settings },
+      { href: "/admin/maintenance", label: "Maintenance", icon: Wrench },
+      { href: "/admin/ip-blacklist", label: "IP Blacklist", icon: Shield },
+      { href: "/admin/geo", label: "Geo Blocking", icon: Globe },
     ],
   },
 ];
@@ -166,7 +220,7 @@ const ADMIN_NAV: NavSection[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isActive(href: string, pathname: string): boolean {
-  if (href === '/admin') return pathname === '/admin';
+  if (href === "/admin") return pathname === "/admin";
   return pathname.startsWith(href);
 }
 
@@ -197,16 +251,18 @@ function NavLeafItem({
       href={item.href}
       onClick={onNavigate}
       className={[
-        'group relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150',
-        nested && !collapsed ? 'pl-9 pr-3 py-2' : 'px-3 py-2.5',
-        collapsed ? '!justify-center !px-2' : '',
-        active ? 'text-white shadow-md' : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900',
-      ].join(' ')}
+        "group relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150",
+        nested && !collapsed ? "pl-9 pr-3 py-2" : "px-3 py-2.5",
+        collapsed ? "!justify-center !px-2" : "",
+        active
+          ? "text-white shadow-md"
+          : "text-gray-500 hover:bg-orange-50 hover:text-gray-900",
+      ].join(" ")}
       style={
         active
           ? {
-              background: 'linear-gradient(135deg, #F97316, #EA580C)',
-              boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+              background: "linear-gradient(135deg, #F97316, #EA580C)",
+              boxShadow: "0 4px 14px rgba(249,115,22,0.22)",
             }
           : undefined
       }
@@ -215,7 +271,7 @@ function NavLeafItem({
       {nested && !collapsed && (
         <span
           className="absolute left-[22px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
-          style={{ background: active ? 'rgba(255,255,255,0.7)' : B.border }}
+          style={{ background: active ? "rgba(255,255,255,0.7)" : B.border }}
         />
       )}
 
@@ -223,7 +279,7 @@ function NavLeafItem({
         size={nested ? 14 : 17}
         strokeWidth={1.9}
         className="shrink-0"
-        style={{ color: active ? '#fff' : B.textFaint }}
+        style={{ color: active ? "#fff" : B.textFaint }}
       />
 
       {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
@@ -232,8 +288,10 @@ function NavLeafItem({
         <span
           className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold"
           style={{
-            background: active ? 'rgba(255,255,255,0.25)' : 'rgba(249,115,22,0.12)',
-            color: active ? '#fff' : B.orange,
+            background: active
+              ? "rgba(255,255,255,0.25)"
+              : "rgba(249,115,22,0.12)",
+            color: active ? "#fff" : B.orange,
           }}
         >
           {item.badge}
@@ -248,7 +306,7 @@ function NavLeafItem({
       {collapsed && (
         <span
           className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-          style={{ background: '#fff', borderColor: B.border, color: B.text }}
+          style={{ background: "#fff", borderColor: B.border, color: B.text }}
         >
           {item.label}
         </span>
@@ -283,19 +341,25 @@ function NavGroupItem({
       <div className="group relative">
         <button
           className={[
-            'flex w-full items-center justify-center rounded-xl px-2 py-2.5 transition-all duration-150',
-            active ? 'text-white shadow-md' : 'text-gray-400 hover:bg-orange-50',
-          ].join(' ')}
+            "flex w-full items-center justify-center rounded-xl px-2 py-2.5 transition-all duration-150",
+            active
+              ? "text-white shadow-md"
+              : "text-gray-400 hover:bg-orange-50",
+          ].join(" ")}
           style={
             active
               ? {
-                  background: 'linear-gradient(135deg, #F97316, #EA580C)',
-                  boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+                  background: "linear-gradient(135deg, #F97316, #EA580C)",
+                  boxShadow: "0 4px 14px rgba(249,115,22,0.22)",
                 }
               : undefined
           }
         >
-          <Icon size={17} strokeWidth={1.9} style={{ color: active ? '#fff' : B.textFaint }} />
+          <Icon
+            size={17}
+            strokeWidth={1.9}
+            style={{ color: active ? "#fff" : B.textFaint }}
+          />
         </button>
 
         {/* Flyout tooltip */}
@@ -303,11 +367,20 @@ function NavGroupItem({
           className="pointer-events-none absolute left-full top-0 z-50 ml-3 min-w-[172px] rounded-xl border bg-white p-2 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
           style={{ borderColor: B.border }}
         >
-          <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: B.textFaint }}>
+          <p
+            className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: B.textFaint }}
+          >
             {item.label}
           </p>
           {item.children.map((c) => (
-            <NavLeafItem key={c.href} item={c} pathname={pathname} collapsed={false} onNavigate={onNavigate} />
+            <NavLeafItem
+              key={c.href}
+              item={c}
+              pathname={pathname}
+              collapsed={false}
+              onNavigate={onNavigate}
+            />
           ))}
         </div>
       </div>
@@ -319,9 +392,11 @@ function NavGroupItem({
       <button
         onClick={() => setOpen((o) => !o)}
         className={[
-          'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
-          active ? 'bg-orange-50 text-gray-900' : 'text-gray-500 hover:bg-orange-50 hover:text-gray-900',
-        ].join(' ')}
+          "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+          active
+            ? "bg-orange-50 text-gray-900"
+            : "text-gray-500 hover:bg-orange-50 hover:text-gray-900",
+        ].join(" ")}
       >
         <Icon
           size={17}
@@ -335,7 +410,7 @@ function NavGroupItem({
           className="shrink-0 transition-transform duration-200"
           style={{
             color: active ? B.orange : B.textFaint,
-            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
           }}
         />
       </button>
@@ -344,7 +419,7 @@ function NavGroupItem({
       <div
         className="overflow-hidden transition-all duration-200"
         style={{
-          maxHeight: open ? `${item.children.length * 44}px` : '0px',
+          maxHeight: open ? `${item.children.length * 44}px` : "0px",
           opacity: open ? 1 : 0,
         }}
       >
@@ -355,7 +430,14 @@ function NavGroupItem({
             style={{ background: B.border }}
           />
           {item.children.map((c) => (
-            <NavLeafItem key={c.href} item={c} pathname={pathname} collapsed={false} nested onNavigate={onNavigate} />
+            <NavLeafItem
+              key={c.href}
+              item={c}
+              pathname={pathname}
+              collapsed={false}
+              nested
+              onNavigate={onNavigate}
+            />
           ))}
         </div>
       </div>
@@ -377,9 +459,11 @@ function LogoutModal({
   error: string | null;
 }) {
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onCancel(); };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) onCancel();
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
   }, [onCancel, loading]);
 
   return (
@@ -397,12 +481,14 @@ function LogoutModal({
         <div className="flex items-start gap-4">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: 'rgba(249,115,22,0.12)' }}
+            style={{ background: "rgba(249,115,22,0.12)" }}
           >
             <AlertTriangle className="h-5 w-5" style={{ color: B.orange }} />
           </div>
           <div>
-            <h2 className="text-base font-bold" style={{ color: B.text }}>Sign out of admin?</h2>
+            <h2 className="text-base font-bold" style={{ color: B.text }}>
+              Sign out of admin?
+            </h2>
             <p className="mt-1 text-sm" style={{ color: B.textMuted }}>
               You'll need to log in again to access the admin panel.
             </p>
@@ -410,7 +496,14 @@ function LogoutModal({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
+          <div
+            className="mt-4 rounded-xl px-4 py-3 text-sm"
+            style={{
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#DC2626",
+            }}
+          >
             {error}
           </div>
         )}
@@ -428,10 +521,10 @@ function LogoutModal({
             onClick={onConfirm}
             disabled={loading}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #F97316, #EA580C)' }}
+            style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Signing out…' : 'Sign out'}
+            {loading ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </div>
@@ -458,19 +551,32 @@ function SidebarContent({
     <div className="flex h-full flex-col bg-white">
       {/* Logo */}
       <div
-        className={`flex items-center border-b py-5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}
+        className={`flex items-center border-b py-5 ${collapsed ? "justify-center px-2" : "gap-3 px-4"}`}
         style={{ borderColor: B.border }}
       >
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #F97316, #22C55E)', boxShadow: '0 4px 14px rgba(249,115,22,0.25)' }}
+          style={{
+            background: "linear-gradient(135deg, #F97316, #22C55E)",
+            boxShadow: "0 4px 14px rgba(249,115,22,0.25)",
+          }}
         >
           <Zap size={18} className="text-white" strokeWidth={2.5} />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold tracking-tight" style={{ color: B.text }}>VendPro</p>
-            <p className="truncate text-[11px] font-medium" style={{ color: B.orange }}>Admin Panel</p>
+            <p
+              className="truncate text-sm font-bold tracking-tight"
+              style={{ color: B.text }}
+            >
+              VendPro
+            </p>
+            <p
+              className="truncate text-[11px] font-medium"
+              style={{ color: B.orange }}
+            >
+              Admin Panel
+            </p>
           </div>
         )}
       </div>
@@ -487,7 +593,7 @@ function SidebarContent({
                 {section.label}
               </p>
             )}
-            <div className={`space-y-0.5 ${collapsed ? 'px-2' : 'px-3'}`}>
+            <div className={`space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}>
               {section.items.map((item) =>
                 isGroup(item) ? (
                   <NavGroupItem
@@ -505,7 +611,7 @@ function SidebarContent({
                     collapsed={collapsed}
                     onNavigate={onNavigate}
                   />
-                )
+                ),
               )}
             </div>
           </div>
@@ -513,21 +619,33 @@ function SidebarContent({
       </nav>
 
       {/* Bottom */}
-      <div className={`border-t py-3 ${collapsed ? 'px-2' : 'px-3'}`} style={{ borderColor: B.border }}>
+      <div
+        className={`border-t py-3 ${collapsed ? "px-2" : "px-3"}`}
+        style={{ borderColor: B.border }}
+      >
         <div className="space-y-0.5">
           <button
             className={[
-              'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-gray-50',
-              collapsed ? 'justify-center !px-2' : '',
-            ].join(' ')}
+              "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-gray-50",
+              collapsed ? "justify-center !px-2" : "",
+            ].join(" ")}
             style={{ color: B.textMuted }}
           >
-            <Bell size={17} strokeWidth={1.9} className="shrink-0" style={{ color: B.textFaint }} />
+            <Bell
+              size={17}
+              strokeWidth={1.9}
+              className="shrink-0"
+              style={{ color: B.textFaint }}
+            />
             {!collapsed && <span>Notifications</span>}
             {collapsed && (
               <span
                 className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-                style={{ background: '#fff', borderColor: B.border, color: B.text }}
+                style={{
+                  background: "#fff",
+                  borderColor: B.border,
+                  color: B.text,
+                }}
               >
                 Notifications
               </span>
@@ -537,17 +655,26 @@ function SidebarContent({
           <button
             onClick={onLogout}
             className={[
-              'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-red-50',
-              collapsed ? 'justify-center !px-2' : '',
-            ].join(' ')}
-            style={{ color: '#DC2626' }}
+              "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-red-50",
+              collapsed ? "justify-center !px-2" : "",
+            ].join(" ")}
+            style={{ color: "#DC2626" }}
           >
-            <LogOut size={17} strokeWidth={1.9} className="shrink-0" style={{ color: '#DC2626' }} />
+            <LogOut
+              size={17}
+              strokeWidth={1.9}
+              className="shrink-0"
+              style={{ color: "#DC2626" }}
+            />
             {!collapsed && <span>Sign out</span>}
             {collapsed && (
               <span
                 className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium opacity-0 shadow-xl transition-opacity group-hover:opacity-100"
-                style={{ background: '#fff', borderColor: B.border, color: '#DC2626' }}
+                style={{
+                  background: "#fff",
+                  borderColor: B.border,
+                  color: "#DC2626",
+                }}
               >
                 Sign out
               </span>
@@ -562,7 +689,7 @@ function SidebarContent({
         className="hidden border-t py-3 text-center text-xs transition hover:bg-gray-50 lg:block"
         style={{ borderColor: B.border, color: B.textFaint }}
       >
-        {collapsed ? '→' : '← Collapse'}
+        {collapsed ? "→" : "← Collapse"}
       </button>
     </div>
   );
@@ -580,18 +707,20 @@ function MobileDrawer({
   onLogout: () => void;
 }) {
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <button
           onClick={onClose}
@@ -600,7 +729,12 @@ function MobileDrawer({
         >
           <X size={16} />
         </button>
-        <SidebarContent collapsed={false} onCollapse={() => {}} onNavigate={onClose} onLogout={onLogout} />
+        <SidebarContent
+          collapsed={false}
+          onCollapse={() => {}}
+          onNavigate={onClose}
+          onLogout={onLogout}
+        />
       </aside>
     </>
   );
@@ -610,11 +744,13 @@ function MobileDrawer({
 
 function Topbar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
-  const segments = pathname.split('/').filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
   const pageTitle =
     segments.length > 1
-      ? segments[segments.length - 1].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-      : 'Dashboard';
+      ? segments[segments.length - 1]
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      : "Dashboard";
 
   return (
     <header
@@ -630,18 +766,25 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       </button>
 
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold" style={{ color: B.text }}>
+        <h1
+          className="truncate text-base font-semibold"
+          style={{ color: B.text }}
+        >
           {pageTitle}
         </h1>
         <p className="truncate text-xs" style={{ color: B.textFaint }}>
-          {new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {new Date().toLocaleDateString("en-NG", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
         </p>
       </div>
 
       {/* Admin badge */}
       <span
         className="hidden rounded-lg px-2.5 py-1 text-xs font-bold sm:block"
-        style={{ background: 'rgba(249,115,22,0.1)', color: B.orange }}
+        style={{ background: "rgba(249,115,22,0.1)", color: B.orange }}
       >
         Admin
       </span>
@@ -651,12 +794,15 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         style={{ border: `1px solid ${B.border}`, color: B.textMuted }}
       >
         <Bell size={17} />
-        <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full" style={{ background: B.orange }} />
+        <span
+          className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full"
+          style={{ background: B.orange }}
+        />
       </button>
 
       <button
         className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition hover:opacity-80"
-        style={{ background: 'rgba(249,115,22,0.12)', color: B.orange }}
+        style={{ background: "rgba(249,115,22,0.12)", color: B.orange }}
       >
         A
       </button>
@@ -666,7 +812,11 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
@@ -674,31 +824,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const router = useRouter();
 
-  const { session: impersonationSession, end: endImpersonation, loading: endingImpersonation } = useImpersonation();
+  const {
+    session: impersonationSession,
+    end: endImpersonation,
+    loading: endingImpersonation,
+  } = useImpersonation();
 
   const handleLogout = async () => {
     setLoggingOut(true);
     setLogoutError(null);
     try {
-      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      const res = await fetch("/api/auth/logout", { method: "POST" });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? 'Failed to sign out.');
+      if (!res.ok) throw new Error(data?.error ?? "Failed to sign out.");
       setShowLogout(false);
-      router.push('/login');
+      router.push("/login");
       router.refresh();
     } catch (e: any) {
-      setLogoutError(e.message ?? 'Something went wrong.');
+      setLogoutError(e.message ?? "Something went wrong.");
     } finally {
       setLoggingOut(false);
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white" style={{ color: B.text }}>
+    <div
+      className="flex h-screen overflow-hidden bg-white"
+      style={{ color: B.text }}
+    >
       {/* Desktop sidebar */}
       <aside
-        className={`hidden flex-col border-r transition-all duration-300 ease-in-out lg:flex ${collapsed ? 'w-[68px]' : 'w-64'}`}
-        style={{ minHeight: '100vh', borderColor: B.border }}
+        className={`hidden flex-col border-r transition-all duration-300 ease-in-out lg:flex ${collapsed ? "w-[68px]" : "w-64"}`}
+        style={{ minHeight: "100vh", borderColor: B.border }}
       >
         <SidebarContent
           collapsed={collapsed}
@@ -711,7 +868,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <MobileDrawer
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        onLogout={() => { setMobileOpen(false); setShowLogout(true); }}
+        onLogout={() => {
+          setMobileOpen(false);
+          setShowLogout(true);
+        }}
       />
 
       {/* Main */}
@@ -732,7 +892,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Logout modal */}
       {showLogout && (
         <LogoutModal
-          onCancel={() => { if (!loggingOut) { setShowLogout(false); setLogoutError(null); } }}
+          onCancel={() => {
+            if (!loggingOut) {
+              setShowLogout(false);
+              setLogoutError(null);
+            }
+          }}
           onConfirm={handleLogout}
           loading={loggingOut}
           error={logoutError}
@@ -740,8 +905,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       <style jsx global>{`
-        .scrollbar-none::-webkit-scrollbar { display: none; }
-        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
     </div>
   );
