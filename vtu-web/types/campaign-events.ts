@@ -87,7 +87,8 @@ export interface LoyaltyPointsLedgerEntry {
   createdAt: Timestamp;
 }
 
-// ─── Badges ────────────────────────────────────────────────────────────────────
+// ─── Badges ────
+// ────────────────────────────────────────────────────────────────
 
 export interface UserBadge {
   id: string;                 // deterministic: `${userId}_${eventDefId}`

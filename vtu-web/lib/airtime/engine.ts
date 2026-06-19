@@ -1,12 +1,19 @@
 // vtu-web/lib/airtime/engine.ts
 // AGENTS.md RULES: #1 (kobo), #2 (wallet ops), #8 (never hard-delete), #9 (log), #13 (config from Firestore)
-import { 
-  NigerianNetwork, 
-  detectNetwork, 
-  normalisePhone 
+import {
+  NigerianNetwork,
+  detectNetwork,
+  normalisePhone,
+  NIGERIAN_NETWORKS,
 } from './utils';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+
+// Re-export so `@/lib/airtime/bulk/route.ts`, `auto-recharge/route.ts`, and
+// `a2c/route.ts` can pull these from `engine.ts` (their existing import path)
+// instead of needing to know about `./utils`.
+export { NIGERIAN_NETWORKS, normalisePhone, detectNetwork };
+export type { NigerianNetwork };
 
 
 // ─── Airtime-to-Cash rates ────────────────────────────────────────────────────

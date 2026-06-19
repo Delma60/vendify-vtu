@@ -4,7 +4,7 @@
 
 import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { getCampaignEventBySlug } from '@/lib/campaign-events/engine';
+import { getCampaignEventBySlug } from '@/lib/events/engine';
 import { adminDb } from '@/lib/firebase/admin';
 import { ok, err } from '@/lib/utils/response';
 

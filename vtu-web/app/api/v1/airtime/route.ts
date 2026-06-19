@@ -12,7 +12,6 @@ import { adminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { User } from '@/types';
 import bcrypt from 'bcryptjs';
-import { auth } from '@/lib/auth';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -58,8 +57,11 @@ export async function POST(request: NextRequest) {
   const pinValid = await bcrypt.compare(transactionPin, user.transactionPin);
   if (!pinValid) return err('Incorrect transaction PIN.', 401, 'INVALID_PIN');
 
-  // 3. Calculate fee (checkout preview matches actual charge)
-  const feeCalc = await calculateFee('airtime', amount);
+  // 3. Calculate fee — calculateFee(service, user, amountKobo, network) is the
+  //    real signature (it looks up role + network-specific discounts), and
+  //    `user` here is the same Firestore doc used for the PIN check above, so
+  //    this charge path matches the GET preview handler exactly.
+  const feeCalc = await calculateFee('airtime', user, amount, network);
   const totalDebit = feeCalc.totalChargeKobo; // amount + platformFee + VAT
 
   // 4. Generate reference
@@ -171,31 +173,38 @@ export async function POST(request: NextRequest) {
 // ─── GET /api/v1/airtime — fee preview ───────────────────────────────────────
 
 /**
- * GET /api/v1/airtime?amount=500000
+ * GET /api/v1/airtime?amount=500000&network=mtn
  * Returns the fee breakdown for an airtime purchase at the given amount.
  * Called by the frontend checkout form before the user confirms.
+ *
+ * calculateFee needs the full user doc (for role-based discounts) and the
+ * network (for network-based discounts), so both are required here — same
+ * as the POST handler — to keep the preview in sync with the real charge.
  */
 export async function GET(request: NextRequest) {
-  try{
+  try {
     const session = await getSession();
-    const user = await auth();
     if (!session) return err('Unauthorized', 401);
-  
-    const amountRaw = new URL(request.url).searchParams.get('amount');
-    const network = new URL(request.url).searchParams.get('network') as string;
+
+    const { searchParams } = new URL(request.url);
+    const amountRaw = searchParams.get('amount');
+    const network = searchParams.get('network');
     const amount = amountRaw ? parseInt(amountRaw, 10) : null;
-  
+
     if (!amount || isNaN(amount) || amount <= 0) {
       return err('Provide a valid amount in kobo as a query param: ?amount=50000', 422);
     }
-    console.log(user)
-    // getRole
+    if (!network) {
+      return err('Provide a network query param: ?network=mtn', 422);
+    }
 
-  
+    const userSnap = await adminDb.collection('users').doc(session.uid).get();
+    if (!userSnap.exists) return err('User not found', 404);
+    const user = userSnap.data() as User;
+
     const fee = await calculateFee('airtime', user, amount, network);
-  
+
     return ok({
-      // discount: ,
       amountKobo: amount,
       platformFeeKobo: fee.platformFeeKobo,
       vatKobo: fee.vatKobo,
@@ -203,10 +212,9 @@ export async function GET(request: NextRequest) {
       totalChargeKobo: fee.totalChargeKobo,
       breakdown: fee.feeBreakdown,
     });
-
-  }catch(e){
-    console.log(e)
-    return err("internal error occured")
+  } catch (e) {
+    console.error('[airtime:fee-preview]', e);
+    return err('Internal error occurred');
   }
 }
 
