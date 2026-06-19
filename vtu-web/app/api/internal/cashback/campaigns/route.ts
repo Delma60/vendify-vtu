@@ -18,7 +18,8 @@ const UserSegmentSchema = z.enum([
   'new_users',
 ]);
 
-const CreateCampaignSchema = z.object({
+// 1. Define the base object without refinements
+const BaseCampaignSchema = z.object({
   name: z.string().min(2).max(100),
   description: z.string().max(500).default(''),
 
@@ -36,7 +37,10 @@ const CreateCampaignSchema = z.object({
   totalBudgetKobo: z.number().int().min(0).default(0),
 
   stackingRule: z.enum(['stackable', 'exclusive']).default('stackable'),
-}).refine(
+});
+
+// 2. Apply strict refinements for Create
+const CreateCampaignSchema = BaseCampaignSchema.refine(
   d => new Date(d.endDate) > new Date(d.startDate),
   { message: 'endDate must be after startDate', path: ['endDate'] }
 ).refine(
@@ -44,9 +48,28 @@ const CreateCampaignSchema = z.object({
   { message: 'Percentage cashback cannot exceed 100%', path: ['cashbackValue'] }
 );
 
-const UpdateCampaignSchema = CreateCampaignSchema.partial().extend({
+// 3. Make base partial, extend it, and apply safe refinements for Update
+const UpdateCampaignSchema = BaseCampaignSchema.partial().extend({
   isActive: z.boolean().optional(),
-});
+}).refine(
+  d => {
+    // Only check date logic if BOTH dates are being updated
+    if (d.startDate && d.endDate) {
+      return new Date(d.endDate) > new Date(d.startDate);
+    }
+    return true; 
+  },
+  { message: 'endDate must be after startDate', path: ['endDate'] }
+).refine(
+  d => {
+    // Only check percentage logic if they are updating the type or value
+    if (d.cashbackType === 'percentage' && d.cashbackValue !== undefined) {
+      return d.cashbackValue <= 100;
+    }
+    return true;
+  },
+  { message: 'Percentage cashback cannot exceed 100%', path: ['cashbackValue'] }
+);
 
 const ListQuerySchema = z.object({
   includeArchived: z.coerce.boolean().default(false),
