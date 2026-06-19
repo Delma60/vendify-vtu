@@ -4,11 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth/session';
+import type { SessionPayload } from '@/types'; // ensure you import your session type
 import { pinCheckMiddleware } from './lib/auth/pin';
 
 // ─── Role tiers ───────────────────────────────────────────────────────────────
 // Roles that may access admin UI / internal API routes at all.
-// Actual permission gates are still enforced server-side per route.
 const ADMIN_ROLE_IDS = new Set([
   'super_admin',
   'admin',
@@ -20,36 +20,40 @@ const ADMIN_ROLE_IDS = new Set([
 // ─── Route classification ─────────────────────────────────────────────────────
 
 // Require valid session
-const PROTECTED = ['/dashboard', '/api/v1/'];
-
-// Require valid session AND an admin-tier roleId
+const PROTECTED = [
+  '/dashboard', 
+  '/api/v1/',
+  '/airtime',
+  '/data',
+  '/electricity',
+  '/cable',
+  '/exam-pin',
+  '/wallet',
+  '/transactions',
+  '/cashback',
+  '/set-pin' // Protect the setup page too!
+];
 const ADMIN_ONLY = ['/admin', '/api/internal/'];
-
-// Redirect to /dashboard if already authenticated
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
-
-// Always pass through (no session check)
 const PUBLIC_PASS = [
   '/api/auth/',
   '/api/webhooks/',
   '/api/health',
-  '/api/v1/plans',   // public plan listing
+  '/api/v1/plans',
   '/maintenance',
   '/_next',
   '/favicon',
 ];
 
+
 function classify(pathname: string): 'public' | 'auth-page' | 'protected' | 'admin' {
   if (PUBLIC_PASS.some((p) => pathname.startsWith(p))) return 'public';
-  // static files (.js, .css, .png …)
   if (/\.\w+$/.test(pathname)) return 'public';
   if (AUTH_PAGES.some((p) => pathname.startsWith(p))) return 'auth-page';
   if (ADMIN_ONLY.some((p) => pathname.startsWith(p))) return 'admin';
   if (PROTECTED.some((p) => pathname.startsWith(p))) return 'protected';
   return 'public';
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function clientIp(req: NextRequest): string {
   return (
@@ -63,6 +67,9 @@ function jsonForbidden(message: string, status: 401 | 403 | 503) {
   return NextResponse.json({ success: false, error: message }, { status });
 }
 
+// ─── PIN Check Helper ─────────────────────────────────────────────────────────
+
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
@@ -70,7 +77,7 @@ export async function middleware(request: NextRequest) {
   const ip = clientIp(request);
   const type = classify(pathname);
 
-  // ── Maintenance mode (env flag only — Firestore read happens server-side) ──
+  // ── Maintenance mode ──
   const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
   const bypassIps = (process.env.MAINTENANCE_BYPASS_IPS ?? '')
     .split(',')
@@ -87,7 +94,7 @@ export async function middleware(request: NextRequest) {
   // ── Public routes — pass straight through ─────────────────────────────────
   if (type === 'public') return NextResponse.next();
 
-  // ── Resolve session from cookie (JWT only, no Firestore) ──────────────────
+  // ── Resolve session from cookie ───────────────────────────────────────────
   const token = request.cookies.get('vtu_session')?.value;
   const session = token ? await verifySessionToken(token) : null;
 
@@ -97,11 +104,8 @@ export async function middleware(request: NextRequest) {
       const dest = ADMIN_ROLE_IDS.has(session.roleId) ? '/admin' : '/dashboard';
       return NextResponse.redirect(new URL(dest, request.url));
     }
-    const pinRedirect = await pinCheckMiddleware(request);
-    if (pinRedirect) return pinRedirect;
     return NextResponse.next();
   }
-  
 
   // ── Unauthenticated — reject or redirect ──────────────────────────────────
   if (!session) {
@@ -111,16 +115,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── Admin-only guard (coarse — fine permissions checked in handlers) ───────
+  // ── PIN gate (runs for authenticated users) ───────────────────────────────
+  const pinRedirect = await pinCheckMiddleware(request);
+  if (pinRedirect) return pinRedirect;
+
+  // ── Admin-only guard ──────────────────────────────────────────────────────
   if (type === 'admin') {
     if (!ADMIN_ROLE_IDS.has(session.roleId)) {
       if (pathname.startsWith('/api/')) return jsonForbidden('Forbidden', 403);
-      // Regular customers see their dashboard, not an error page
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
-
-  
 
   // ── Forward identity to route handlers via headers ────────────────────────
   const headers = new Headers(request.headers);
@@ -134,10 +139,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match everything except Next.js internals and static files already
-     * served by the CDN. Using a negative lookahead keeps this list short.
-     */
     '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)',
   ],
 };
