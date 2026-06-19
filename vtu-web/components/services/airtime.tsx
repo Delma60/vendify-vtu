@@ -144,7 +144,7 @@ export function AirtimeFormContent({ networks }: { networks:Network[] }) {
                 {networks.map((net) => (
                   <button
                     key={net.id}
-                    onClick={() => setNetwork(net?.id as any)}
+                    onClick={() => setNetwork(net?.code as NigerianNetwork)}
                     className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all active:scale-95 ${
                       network === net.code
                         ? "border-orange-500 bg-orange-50"

@@ -242,7 +242,7 @@ async function callProvider(params: ProviderCallParams): Promise<ProviderCallRes
   const result = await buyAirtime({
     phone: params.phone,
     network: params.network,
-    amount: params.amount,
+    amountKobo: params.amount,
     reference: params.reference,
   });
 
@@ -250,7 +250,7 @@ async function callProvider(params: ProviderCallParams): Promise<ProviderCallRes
     success: result.success,
     provider: result.provider ?? 'unknown',
     providerReference: result.providerReference ?? '',
-    error: result.error,
+     error: result.success ? undefined : result.message,
     shouldRefund: result.shouldRefund,
   };
 }

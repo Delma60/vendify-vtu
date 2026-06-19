@@ -69,6 +69,7 @@ function buildReceiptHtml(txn: Transaction, user: User): string {
       <td class="status-${txn.status}">${txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}</td>
     </tr>
     ${txn.fee > 0 ? `<tr><td>Fee</td><td>${koboToNaira(txn.fee)}</td></tr>` : ''}
+    ${txn.fee > 0 ? `<tr><td>Total</td><td>${koboToNaira(txn.amount)}</td></tr>` : ''}
     <tr><td>Balance before</td><td>${koboToNaira(txn.balanceBefore)}</td></tr>
     <tr><td>Balance after</td><td>${koboToNaira(txn.balanceAfter)}</td></tr>
     ${txn.providerReference ? `<tr><td>Provider ref</td><td>${txn.providerReference}</td></tr>` : ''}

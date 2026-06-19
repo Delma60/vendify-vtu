@@ -318,9 +318,10 @@ export async function processBulkJobRow(
     const { debitWallet } = await import('@/lib/wallet/operations');
     const { generateReference } = await import('@/lib/utils/reference');
     const { buyAirtime } = await import('@/lib/providers/router');
-
-    const feeCalc = await calculateFee('airtime', row.amount);
-    const reference = generateReference('airtime');
+    const userSnap = await adminDb.collection('users').doc(job.userId).get();
+const user = userSnap.data();
+    const feeCalc = await calculateFee('airtime', user, row.amount, row.network);
+const reference = generateReference('airtime');
 
     // Debit wallet for this row
     const txnId = await debitWallet(
@@ -345,7 +346,7 @@ export async function processBulkJobRow(
     const result = await buyAirtime({
       phone: row.phone,
       network: row.network,
-      amount: row.amount,
+      amountKobo: row.amount,
       reference,
     });
 
@@ -354,7 +355,7 @@ export async function processBulkJobRow(
       ...row,
       status: result.success ? 'success' : 'failed',
       reference,
-      error: result.success ? null : (result.error ?? 'Provider error'),
+      error: result.success ? null : (result.message ?? 'Provider error'),
     };
 
     // Update transaction status
@@ -365,7 +366,7 @@ export async function processBulkJobRow(
         providerReference: result.providerReference ?? undefined,
       });
     } else {
-      await updateTransactionStatus(txnId, 'failed', { failureReason: result.error ?? undefined });
+      await updateTransactionStatus(txnId, 'failed', { failureReason: result.success ? undefined : result.message ?? "Internal Error" });
       if (result.shouldRefund) {
         const { creditWallet } = await import('@/lib/wallet/operations');
         await creditWallet(job.userId, feeCalc.totalChargeKobo, {
@@ -582,10 +583,10 @@ export async function runAutoRecharges(): Promise<{
 
       // Load user
       const userSnap = await adminDb.collection('users').doc(rule.userId).get();
-      if (!userSnap.exists || !(userSnap.data() as any).isActive) {
-        summary.skipped++;
-        continue;
-      }
+if (!userSnap.exists) { summary.skipped++; continue; }
+const user = userSnap.data() as any;
+if (!user.isActive) { summary.skipped++; continue; }
+
 
       // Fire purchase
       const { calculateFee } = await import('@/lib/fees/engine');
@@ -593,8 +594,8 @@ export async function runAutoRecharges(): Promise<{
       const { generateReference } = await import('@/lib/utils/reference');
       const { buyAirtime } = await import('@/lib/providers/router');
 
-      const feeCalc = await calculateFee('airtime', rule.rechargeAmountKobo);
-      const reference = generateReference('airtime');
+      const feeCalc = await calculateFee('airtime', user, rule.rechargeAmountKobo, rule.network);  // ✅
+const reference = generateReference('airtime');
 
       const txnId = await debitWallet(rule.userId, feeCalc.totalChargeKobo, {
         category: 'airtime',
@@ -612,14 +613,14 @@ export async function runAutoRecharges(): Promise<{
       const result = await buyAirtime({
         phone: rule.phone,
         network: rule.network,
-        amount: rule.rechargeAmountKobo,
+        amountKobo: rule.rechargeAmountKobo,
         reference,
       });
 
       await updateTransactionStatus(txnId, result.success ? 'success' : 'failed', {
         provider: result.provider ?? undefined,
         providerReference: result.providerReference ?? undefined,
-        failureReason: result.error ?? undefined,
+        failureReason: result.message ?? undefined,
       });
 
       if (!result.success && result.shouldRefund) {

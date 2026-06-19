@@ -25,7 +25,7 @@ export interface VTUProviderInterface {
 
   buyAirtime(params: AirtimeParams): Promise<ProviderResponse>;
   buyData(params: DataParams): Promise<ProviderResponse>;
-  getDataPlans(network:string): Promise<DataPlans>
+  getDataPlans(network:string): Promise<any[]>
   payElectricity(params: ElectricityParams): Promise<ProviderResponse>;
   payCable(params: CableParams): Promise<ProviderResponse>;
   buyExamPin(params: ExamPinParams): Promise<ProviderResponse>;
