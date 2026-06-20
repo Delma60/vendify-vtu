@@ -87,6 +87,8 @@ export class ProviderFactory {
       );
     }
 
+    console.log({entry})
+
     return new entry.cls(config);
   }
 

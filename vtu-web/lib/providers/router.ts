@@ -45,12 +45,18 @@ async function executeWithFailover<P>(
       // (see buyData below) — if the plan has no code for this provider, skip it.
       // @ts-expect-error — dynamic dispatch across the shared interface
       const result: ProviderResponse = await instance[operation](params);
+      console.log({
+      operation,
+      instance,
+      result,
+      })
 
       if (result.success) return result;
 
       attempts.push({ provider: config.code, error: result.message });
       // Try next provider on failure
     } catch (error) {
+      console.log(error)
       attempts.push({ provider: config.code, error: (error as Error).message });
     }
   }

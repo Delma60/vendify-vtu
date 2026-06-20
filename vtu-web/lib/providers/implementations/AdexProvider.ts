@@ -197,6 +197,7 @@ export class AdexProvider extends ProviderBase {
   // document and loaded into config by the router. Mirrors $this->networkIDs in PHP.
 
   private networkId(network: string): string | number {
+    console.log({ config:this.config })
     return this.resolveId(this.config.networkIds, network);
   }
 
@@ -211,8 +212,9 @@ export class AdexProvider extends ProviderBase {
   // ── ProviderBase abstract implementations ───────────────────────────────────
 
   async buyAirtime(p: AirtimeParams): Promise<ProviderResponse> {
+    const ntIds = this.getNetworkIds()
     const payload = {
-      network: this.networkId(p.network),
+      network: (ntIds as any)[p.network],
       phone: p.phone,
       plan_type: 'VTU',
       // Adex expects Naira, not kobo — convert
@@ -446,5 +448,15 @@ export class AdexProvider extends ProviderBase {
     }
 
     return base;
+  }
+
+  // networks in adex 
+  private getNetworkIds(){
+    return {
+      "mtn": 1,
+      "airtel": 2,
+      "glo": 3,
+      "9mobile": 4,
+    }
   }
 }
