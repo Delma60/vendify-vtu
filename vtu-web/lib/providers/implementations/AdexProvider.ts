@@ -150,6 +150,7 @@ export class AdexProvider extends ProviderBase {
   ): Promise<T> {
     const token = await this.getAccessToken();
     const url = `${this.baseUrl()}${path}`;
+    console.log({url})
 
     const res = await fetch(url, {
       method: 'POST',
@@ -224,6 +225,8 @@ export class AdexProvider extends ProviderBase {
       this.endpointFor('airtime'),
       payload
     );
+
+    console.log(res)
 
     return this.normalise('airtime', res, p.reference);
   }

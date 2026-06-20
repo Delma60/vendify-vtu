@@ -29,6 +29,7 @@ export abstract class ProviderBase implements VTUProviderInterface {
   abstract checkTransactionStatus(reference: string): Promise<ProviderResponse>;
   abstract handleWebhook(payload: Record<string, unknown>): Promise<WebhookResult>;
   protected abstract getAuthHeaders(): Record<string, string>;
+  abstract getDataPlans(network: string): Promise<any[]> ;
 
   // ── Shared helpers ────────────────────────────────────────────────────────
 
