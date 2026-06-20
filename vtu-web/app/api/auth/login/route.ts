@@ -22,6 +22,7 @@ import {
 } from '@/lib/mail/client';
 import { signOtpToken } from '@/lib/auth/session';
 import type { User } from '@/types';
+import { ensureVirtualAccount } from '@/lib/wallet/virtual-account';
 
 // Firebase REST API for password verification
 const FIREBASE_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? '';
@@ -136,6 +137,13 @@ export async function POST(request: NextRequest) {
       time: new Date().toUTCString(),
     }).catch(console.error);
   }
+
+  ensureVirtualAccount({
+  uid: user.uid,
+  email: user.email,
+  phone: user.phone,
+  displayName: user.displayName,
+}).catch(() => {});
 
   return ok(
     {

@@ -76,6 +76,12 @@ export abstract class PaymentGatewayBase implements PaymentGatewayInterface {
       init.body = JSON.stringify(body);
     }
 
+    // Firestore (used by logExternalCall) rejects `undefined` fields outright.
+    // GET/DELETE calls (e.g. getBalance(), resolveAccount()) legitimately have
+    // no body, so normalize that to `null` here, once, rather than relying on
+    // every call site to remember to pass one.
+    const loggedRequest = { method, body: body ?? null };
+
     let ok = false;
     let responseBody: unknown = null;
 
@@ -84,11 +90,11 @@ export abstract class PaymentGatewayBase implements PaymentGatewayInterface {
       ok = res.ok;
       responseBody = await res.json().catch(() => null);
     } catch (error) {
-      logExternalCall(this.config.name, path, { method, body }, { error: (error as Error).message }, false);
+      logExternalCall(this.config.name, path, loggedRequest, { error: (error as Error).message }, false);
       throw error;
     }
 
-    logExternalCall(this.config.name, path, { method, body }, responseBody, ok);
+    logExternalCall(this.config.name, path, loggedRequest, responseBody, ok);
 
     if (!ok) {
       const message = (responseBody as { message?: string })?.message

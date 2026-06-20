@@ -67,6 +67,10 @@ export class FlutterwaveGateway extends PaymentGatewayBase {
     };
   }
 
+  protected baseUrl(): string {
+    return "https://api.flutterwave.com/v3";
+  }
+
   // ── Funding ──────────────────────────────────────────────────────────────
 
   /**

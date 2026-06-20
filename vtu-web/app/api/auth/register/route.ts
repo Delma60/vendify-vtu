@@ -8,6 +8,7 @@ import { ok, err, parseIp } from '@/lib/utils/response';
 import { generateEmailOtp, storeEmailOtp } from '@/lib/auth/twoFactor';
 import { sendEmailVerification } from '@/lib/mail/client';
 import { randomBytes } from 'crypto';
+import { ensureVirtualAccount } from '@/lib/wallet/virtual-account';
 
 function generateReferralCode(): string {
   return randomBytes(4).toString('hex').toUpperCase();
@@ -127,28 +128,13 @@ export async function POST(request: NextRequest) {
     console.error('[register] Failed to send verification email', e)
   );
 
-  // Async: create Flutterwave virtual account (non-blocking, retried if it fails)
-  createVirtualAccountAsync(uid, { email, phone, name: displayName }).catch((e) =>
-    console.error('[register] Virtual account creation failed — will retry on next login', e)
-  );
+  await ensureVirtualAccount({
+  uid,
+  email,
+  phone: "",
+  displayName
+});
 
   return ok({ uid, email }, 'Account created. Check your email for a verification code.', 201);
 }
 
-async function createVirtualAccountAsync(
-  uid: string,
-  customerDetails: { email: string; phone: string; name: string }
-): Promise<void> {
-  try {
-    const { createVirtualAccount } = await import('@/lib/flutterwave/virtual-accounts');
-    await createVirtualAccount(uid, customerDetails);
-  } catch (error) {
-    // Store a flag to retry on next user session
-    await adminDb.collection('pending_virtual_accounts').doc(uid).set({
-      uid,
-      customerDetails,
-      failedAt: FieldValue.serverTimestamp(),
-      retryCount: 0,
-    });
-  }
-}
