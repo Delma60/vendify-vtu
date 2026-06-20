@@ -48,3 +48,10 @@ export const B = {
   border: "#E5E7EB",
   surface: "#F9FAFB",
 };
+export const NETWORK_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "All networks" },
+  { value: "mtn", label: "MTN" },
+  { value: "airtel", label: "Airtel" },
+  { value: "glo", label: "Glo" },
+  { value: "9mobile", label: "9mobile" },
+];

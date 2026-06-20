@@ -49,3 +49,6 @@ export const calculateFinalPrice = (
   // Ensure the final price doesn't drop below 0
   return Math.max(0, amount - discountAmount);
 };
+
+export const fmt = (k: number) =>
+  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(k / 100);
